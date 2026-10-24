@@ -105,26 +105,37 @@ export function PlanCard({ data, restored = false }: { data: Extract<CardData, {
           </p>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="gap-2.5 pt-3 border-t border-border/70 bg-muted/20">
         {!approved && (
-          <Button onClick={approve} disabled={busy} variant="primary">
+          <Button onClick={approve} disabled={busy} variant="primary" className="font-bold shadow-soft">
             <CheckCircle2 /> {busy ? "Đang duyệt…" : "Phê duyệt & Tạo checklist"}
           </Button>
         )}
         {approved && (
           <>
-            <Link href={`/teacher/assess/${plan.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-soft">
-              <ClipboardCheck className="size-4" aria-hidden /> Ghi nhận quan sát (30 giây)
+            <Link
+              href={`/teacher/assess/${plan.id}`}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-sun px-4 text-sm font-bold text-white shadow-soft transition-all hover:brightness-105 active:scale-[0.98]"
+            >
+              <ClipboardCheck className="size-4" aria-hidden /> Ghi nhận quan sát (30s)
             </Link>
             {plan.status === "approved" && (
-              <Button variant="soft" onClick={() => send("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}>
-                <Users /> Soạn thẻ cho phụ huynh
+              <Button
+                variant="outline"
+                className="border-sky/40 text-sky-strong hover:bg-sky-soft/60 font-semibold"
+                onClick={() => send("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}
+              >
+                <Users className="text-sky" /> Soạn thẻ phụ huynh
               </Button>
             )}
           </>
         )}
-        <Link href={`/teacher/plan/${plan.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-semibold hover:bg-muted">
-          {plan.status === "shared" ? <ExternalLink className="size-4" aria-hidden /> : <Pencil className="size-4" aria-hidden />} Mở chi tiết {plan.status === "shared" ? "" : "& chỉnh sửa"}
+        <Link
+          href={`/teacher/plan/${plan.id}`}
+          className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors shadow-2xs"
+        >
+          {plan.status === "shared" ? <ExternalLink className="size-4 text-muted-foreground" aria-hidden /> : <Pencil className="size-4 text-muted-foreground" aria-hidden />}
+          Mở chi tiết {plan.status === "shared" ? "" : "& chỉnh sửa"}
         </Link>
       </CardFooter>
     </Card>

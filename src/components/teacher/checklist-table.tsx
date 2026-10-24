@@ -34,9 +34,9 @@ export function deriveOverall(ratings: Record<string | number, AssessmentRating>
 }
 
 const ratingTone: Record<AssessmentRating, string> = {
-  excellent: "data-[on=true]:bg-sun data-[on=true]:text-[oklch(0.3_0.06_70)]",
-  achieved: "data-[on=true]:bg-primary data-[on=true]:text-primary-foreground",
-  needs_practice: "data-[on=true]:bg-coral data-[on=true]:text-white",
+  excellent: "data-[on=true]:bg-sun data-[on=true]:text-white data-[on=true]:border-sun shadow-2xs font-bold",
+  achieved: "data-[on=true]:bg-mint data-[on=true]:text-white data-[on=true]:border-mint shadow-2xs font-bold",
+  needs_practice: "data-[on=true]:bg-coral data-[on=true]:text-white data-[on=true]:border-coral shadow-2xs font-bold",
 };
 
 function RatingButtons({ value, onChange, small }: { value?: AssessmentRating; onChange: (r: AssessmentRating) => void; small?: boolean }) {

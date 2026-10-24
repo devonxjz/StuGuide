@@ -42,7 +42,7 @@ export function Composer({ onSend, busy, placeholder }: { onSend: (text: string)
         e.preventDefault();
         submit();
       }}
-      className="flex items-end gap-2 rounded-2xl border bg-card p-2 shadow-soft focus-within:border-primary"
+      className="flex items-end gap-2 rounded-2xl border border-border/80 bg-card p-2 shadow-soft focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all"
     >
       <textarea
         ref={ref}
@@ -58,9 +58,15 @@ export function Composer({ onSend, busy, placeholder }: { onSend: (text: string)
             submit();
           }
         }}
-        className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground/70 disabled:opacity-60"
+        className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2.5 py-2 text-sm outline-none placeholder:text-muted-foreground/70 disabled:opacity-60 text-foreground"
       />
-      <Button type="submit" size="icon" aria-label="Gửi" disabled={busy || !text.trim()}>
+      <Button
+        type="submit"
+        size="icon"
+        aria-label="Gửi"
+        disabled={busy || !text.trim()}
+        className="rounded-xl shadow-soft font-bold transition-all hover:scale-105 active:scale-95"
+      >
         <Send />
       </Button>
     </form>

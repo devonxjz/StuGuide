@@ -4,7 +4,7 @@ import "./globals.css";
 
 const beVietnam = Be_Vietnam_Pro({
   subsets: ["vietnamese", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-be-vietnam",
   display: "swap",
 });
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#5bb87a",
+  themeColor: "#4f46e5",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

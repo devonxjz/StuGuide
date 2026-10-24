@@ -3,17 +3,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all select-none disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all select-none disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground shadow-soft hover:brightness-105",
-        soft: "bg-primary-soft text-primary-strong hover:brightness-95",
-        outline: "border bg-card text-foreground hover:bg-muted",
-        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
-        sun: "bg-sun text-[oklch(0.3_0.06_70)] shadow-soft hover:brightness-105",
-        danger: "bg-coral-soft text-coral-strong hover:brightness-95",
-        ai: "bg-gradient-to-br from-primary to-[oklch(0.6_0.14_200)] text-primary-foreground shadow-soft hover:brightness-105",
+        primary: "bg-primary text-primary-foreground shadow-soft hover:brightness-105 hover:shadow-xs",
+        soft: "bg-primary-soft text-primary-strong hover:bg-primary-soft/80",
+        outline: "border border-border bg-card text-foreground hover:bg-muted/70 shadow-2xs",
+        ghost: "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+        sun: "bg-sun text-white shadow-soft hover:brightness-105",
+        danger: "bg-coral-soft text-coral-strong hover:bg-coral-soft/80",
+        ai: "bg-gradient-to-r from-primary via-lilac to-sky text-white shadow-soft hover:brightness-105 hover:shadow-md",
       },
       size: {
         sm: "h-8 px-3",

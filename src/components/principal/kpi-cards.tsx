@@ -11,16 +11,16 @@ interface Kpis {
 
 export function KpiCards({ kpis }: { kpis: Kpis }) {
   const items = [
-    { label: "Giáo án đã duyệt (30 ngày)", value: String(kpis.approvedLast30Days), icon: CircleCheck, tone: "bg-primary-soft text-primary-strong" },
+    { label: "Giáo án đã duyệt (30 ngày)", value: String(kpis.approvedLast30Days), icon: CircleCheck, tone: "bg-mint-soft text-mint-strong border border-mint/20" },
     {
       label: "Giáo án AI / giáo viên (30 ngày)",
       value: String(kpis.plansPerTeacher),
       hint: kpis.medianApprovalHours === null ? "Chưa có bài được duyệt trong 30 ngày" : `Trung vị ${kpis.medianApprovalHours} giờ từ lúc soạn tới lúc duyệt`,
       icon: Clock,
-      tone: "bg-sky-soft text-sky-strong",
+      tone: "bg-sky-soft text-sky-strong border border-sky/20",
     },
-    { label: "Bài đạt chuẩn pháp lý", value: `${kpis.legalComplianceRate}%`, hint: "Căn cứ đã đối chiếu kho tri thức", icon: BadgeCheck, tone: "bg-lilac-soft text-lilac-strong" },
-    { label: "Phụ huynh tương tác", value: `${kpis.parentEngagementRate}%`, hint: "Toàn trường", icon: HeartHandshake, tone: "bg-sun-soft text-sun-strong" },
+    { label: "Bài đạt chuẩn pháp lý", value: `${kpis.legalComplianceRate}%`, hint: "Căn cứ đã đối chiếu kho tri thức", icon: BadgeCheck, tone: "bg-lilac-soft text-lilac-strong border border-lilac/20" },
+    { label: "Phụ huynh tương tác", value: `${kpis.parentEngagementRate}%`, hint: "Toàn trường", icon: HeartHandshake, tone: "bg-sun-soft text-sun-strong border border-sun/20" },
   ];
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

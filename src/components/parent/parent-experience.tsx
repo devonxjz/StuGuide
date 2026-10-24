@@ -95,7 +95,12 @@ export function ParentExperience({ token, view }: { token: string; view: ParentV
             aria-pressed={response === "completed"}
             disabled={busy !== null}
             onClick={() => send("completed")}
-            className={cn("min-h-16 rounded-2xl text-lg font-bold transition-all active:scale-[0.98]", response === "completed" ? "bg-primary text-primary-foreground shadow-soft" : "border-2 border-primary/40 bg-card text-primary-strong")}
+            className={cn(
+              "min-h-16 rounded-2xl text-lg font-bold transition-all active:scale-[0.98] shadow-2xs",
+              response === "completed"
+                ? "bg-mint text-white shadow-soft"
+                : "border-2 border-mint/40 bg-card text-mint-strong hover:bg-mint-soft/50"
+            )}
           >
             ✅ Bé đã hoàn thành
           </button>
@@ -104,15 +109,20 @@ export function ParentExperience({ token, view }: { token: string; view: ParentV
             aria-pressed={response === "needs_practice"}
             disabled={busy !== null}
             onClick={() => send("needs_practice")}
-            className={cn("min-h-16 rounded-2xl text-lg font-bold transition-all active:scale-[0.98]", response === "needs_practice" ? "bg-sun text-[oklch(0.3_0.06_70)] shadow-soft" : "border-2 border-sun/60 bg-card text-sun-strong")}
+            className={cn(
+              "min-h-16 rounded-2xl text-lg font-bold transition-all active:scale-[0.98] shadow-2xs",
+              response === "needs_practice"
+                ? "bg-sun text-white shadow-soft"
+                : "border-2 border-sun/50 bg-card text-sun-strong hover:bg-sun-soft/50"
+            )}
           >
-            🌱 Bé cần rèn thêm
+            🌟 Bé cần rèn thêm
           </button>
         </div>
         {error && <p role="alert" className="mt-3 rounded-xl bg-coral-soft px-3 py-2 text-sm font-medium text-coral-strong">{error}</p>}
         {thanks && (
-          <p role="status" className="mt-4 rounded-2xl bg-primary-soft p-4 text-center text-sm font-semibold text-primary-strong animate-pop-in">
-            Cảm ơn bố mẹ! Cô giáo đã nhận được phản hồi rồi ạ 💚
+          <p role="status" className="mt-4 rounded-2xl border border-mint/30 bg-mint-soft p-4 text-center text-sm font-bold text-mint-strong animate-pop-in">
+            Cảm ơn bố mẹ! Cô giáo đã nhận được phản hồi rồi ạ ✨
           </p>
         )}
       </section>

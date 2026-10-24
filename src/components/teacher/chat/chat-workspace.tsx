@@ -9,6 +9,7 @@ import { Bot, ClipboardCheck, PlusCircle, RotateCcw, Sparkles, Square, Users, Wi
 import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
+import { cn } from "@/lib/utils";
 import type { StatusData, StuGuideMessage } from "@/types/chat";
 import { ChatActionsContext } from "./chat-context";
 import { Composer } from "./composer";
@@ -201,39 +202,118 @@ export function ChatWorkspace({
 function Welcome({ teacherName, className, onPick }: { teacherName: string; className: string; onPick: (t: string) => void }) {
   const first = teacherName.split(" ").slice(-1)[0];
   return (
-    <div className="space-y-8 py-4 animate-pop-in">
-      <div className="text-center">
-        <span className="mx-auto mb-4 grid size-16 place-items-center rounded-3xl bg-gradient-to-br from-primary to-[oklch(0.7_0.15_130)] text-primary-foreground shadow-soft">
-          <Sparkles className="size-8" aria-hidden />
-        </span>
-        <h1 className="text-balance text-2xl font-bold tracking-tight sm:text-3xl">Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng làm gì ạ?</h1>
-        <p className="mx-auto mt-2 max-w-lg text-balance text-muted-foreground">Cô cứ nhắn như nói chuyện, mình sẽ soạn kế hoạch, kiểm tra an toàn, tra cứu căn cứ pháp lý và chuẩn bị thẻ cho phụ huynh.</p>
+    <div className="space-y-8 py-6 animate-pop-in">
+      <div className="text-center relative">
+        {/* Hero Motion Graphic với ánh sáng hào quang và floating animation */}
+        <div className="relative mx-auto mb-5 size-20">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-primary via-lilac to-sky blur-xl opacity-40 animate-pulse-soft" />
+          <span className="relative grid size-20 place-items-center rounded-3xl bg-gradient-to-tr from-primary via-lilac to-sky text-white shadow-float animate-float">
+            <Sparkles className="size-9 animate-pulse" aria-hidden />
+          </span>
+        </div>
+
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft/80 px-3 py-1 text-xs font-bold text-primary-strong mb-3 shadow-2xs">
+          <span className="size-2 rounded-full bg-primary animate-pulse" />
+          Mầm Học AI · Trợ Lý Giáo Viên Mầm Non
+        </div>
+
+        <h1 className="text-balance text-2xl font-extrabold tracking-tight sm:text-3xl text-foreground">
+          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng làm gì ạ?
+        </h1>
+        <p className="mx-auto mt-2 max-w-lg text-balance text-sm text-muted-foreground font-medium leading-relaxed">
+          Cô cứ nhắn tự nhiên như nói chuyện, mình sẽ soạn kế hoạch chuẩn TT 45, kiểm tra an toàn vật liệu và chuẩn bị thẻ 5 phút cho phụ huynh.
+        </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <button type="button" onClick={() => onPick(FIRST_PROMPT)} className="group rounded-3xl border bg-card p-4 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary">
-          <span className="mb-3 grid size-10 place-items-center rounded-2xl bg-primary-soft text-primary-strong"><PlusCircle className="size-5" aria-hidden /></span>
-          <span className="block font-semibold">Tạo Kế hoạch & Trò chơi mới</span>
-          <span className="mt-1 block text-xs text-muted-foreground">Một câu là có bản nháp đủ pháp lý, an toàn, lời dẫn.</span>
+      {/* 3 Thẻ hành động nhanh với màu sắc đồ họa rực rỡ & hiệu ứng tương tác mượt mà */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => onPick(FIRST_PROMPT)}
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-float active:scale-[0.98]"
+        >
+          <div>
+            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-primary to-lilac text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <PlusCircle className="size-6" aria-hidden />
+            </div>
+            <span className="block font-bold text-base text-foreground group-hover:text-primary transition-colors">
+              Tạo Kế hoạch & Trò chơi
+            </span>
+            <span className="mt-1.5 block text-xs text-muted-foreground leading-relaxed">
+              Một câu yêu cầu là có ngay bản nháp trích dẫn VBHN 01, luật an toàn, lời dẫn truyện.
+            </span>
+          </div>
+          <span className="mt-4 inline-flex items-center text-xs font-bold text-primary gap-1">
+            Bắt đầu ngay &rarr;
+          </span>
         </button>
-        <Link href="/teacher/assess" className="group rounded-3xl border bg-card p-4 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary">
-          <span className="mb-3 grid size-10 place-items-center rounded-2xl bg-sun-soft text-sun-strong"><ClipboardCheck className="size-5" aria-hidden /></span>
-          <span className="block font-semibold">Ghi nhận Quan sát (30 giây)</span>
-          <span className="mt-1 block text-xs text-muted-foreground">Tích chọn cả lớp nhanh, AI nhắc bé cần quan sát sâu.</span>
+
+        <Link
+          href="/teacher/assess"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-sun/60 hover:shadow-float active:scale-[0.98]"
+        >
+          <div>
+            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-sun to-coral text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
+              <ClipboardCheck className="size-6" aria-hidden />
+            </div>
+            <span className="block font-bold text-base text-foreground group-hover:text-sun-strong transition-colors">
+              Ghi nhận Quan sát (30s)
+            </span>
+            <span className="mt-1.5 block text-xs text-muted-foreground leading-relaxed">
+              Tích chọn cả lớp một chạm thần tốc, AI tự động phát hiện bé cần quan sát sâu.
+            </span>
+          </div>
+          <span className="mt-4 inline-flex items-center text-xs font-bold text-sun-strong gap-1">
+            Mở checklist &rarr;
+          </span>
         </Link>
-        <button type="button" onClick={() => onPick("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")} className="group rounded-3xl border bg-card p-4 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary">
-          <span className="mb-3 grid size-10 place-items-center rounded-2xl bg-sky-soft text-sky-strong"><Users className="size-5" aria-hidden /></span>
-          <span className="block font-semibold">Soạn Thẻ hoạt động Phụ huynh</span>
-          <span className="mt-1 block text-xs text-muted-foreground">Nhiệm vụ 5 phút buổi tối, phản hồi 1 chạm.</span>
+
+        <button
+          type="button"
+          onClick={() => onPick("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-sky/50 hover:shadow-float active:scale-[0.98]"
+        >
+          <div>
+            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-sky to-primary text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <Users className="size-6" aria-hidden />
+            </div>
+            <span className="block font-bold text-base text-foreground group-hover:text-sky-strong transition-colors">
+              Thẻ hoạt động Phụ huynh
+            </span>
+            <span className="mt-1.5 block text-xs text-muted-foreground leading-relaxed">
+              Nhiệm vụ 5 phút không màn hình buổi tối cho bé, theo dõi phản hồi realtime.
+            </span>
+          </div>
+          <span className="mt-4 inline-flex items-center text-xs font-bold text-sky-strong gap-1">
+            Soạn thẻ &rarr;
+          </span>
         </button>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2">
-        {SUGGESTIONS.map((s) => (
-          <button key={s} type="button" onClick={() => onPick(s)} className="rounded-full border bg-card px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-            {s}
-          </button>
-        ))}
+      {/* Danh sách gợi ý câu hỏi dạng pill sạch sẽ với icon sinh động */}
+      <div className="flex flex-wrap justify-center gap-2 pt-2">
+        {SUGGESTIONS.map((s, idx) => {
+          const tones = [
+            "hover:border-primary/40 hover:text-primary",
+            "hover:border-sun/50 hover:text-sun-strong",
+            "hover:border-sky/50 hover:text-sky-strong",
+            "hover:border-lilac/50 hover:text-lilac-strong",
+          ];
+          const tone = tones[idx % tones.length];
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onPick(s)}
+              className={cn(
+                "rounded-full border border-border/70 bg-card px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs",
+                tone
+              )}
+            >
+              {s}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
