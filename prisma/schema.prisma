@@ -1,0 +1,338 @@
+// SQLite cho prototype. Khác schema đích (Postgres) ở chỗ:
+//  - enum  -> String (kiểm soát bằng Zod/TS ở src/core/constants/status.ts)
+//  - String[] -> Json (SQLite không có kiểu mảng)
+//  - KnowledgeChunk/pgvector -> vector store trong bộ nhớ (src/ai/rag)
+// Khi lên Postgres: khôi phục enum, String[], và bảng KnowledgeChunk.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model School {
+  id      String  @id @default(uuid())
+  name    String
+  address String?
+
+  users   User[]
+  classes Class[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  fullName  String
+  email     String?  @unique
+  phone     String?  @unique
+  role      String // teacher | principal | parent
+  /// scrypt: "salt:hash" (hex). Null = chưa đặt mật khẩu, không đăng nhập được.
+  passwordHash String?
+  /// Tăng mỗi lần đăng xuất: mọi cookie phiên đã cấp trước đó mất hiệu lực (thu hồi phiên).
+  sessionVersion Int @default(0)
+  schoolId  String
+  createdAt DateTime @default(now())
+
+  school      School           @relation(fields: [schoolId], references: [id])
+  classes     ClassTeacher[]
+  lessonPlans LessonPlan[]
+  feedbacks   ParentFeedback[]
+  auditLogs   AuditLog[]
+  children    StudentParent[]
+  tokens      ParentToken[]
+  conversations Conversation[]
+  memories      TeacherMemory[]
+  learningSessions LearningSession[]
+}
+
+model Class {
+  id       String @id @default(uuid())
+  name     String
+  ageGroup String // 24-36m | 3-4y | 4-5y | 5-6y
+  ageLabel String
+  schoolId String
+
+  school      School         @relation(fields: [schoolId], references: [id])
+  teachers    ClassTeacher[]
+  students    Student[]
+  lessonPlans LessonPlan[]
+}
+
+model ClassTeacher {
+  classId   String
+  teacherId String
+  isPrimary Boolean @default(false)
+
+  class   Class @relation(fields: [classId], references: [id])
+  teacher User  @relation(fields: [teacherId], references: [id])
+
+  @@id([classId, teacherId])
+}
+
+model Student {
+  id          String   @id @default(uuid())
+  fullName    String
+  dateOfBirth DateTime
+  gender      String
+  classId     String
+  avatarEmoji String?  @default("👶")
+  createdAt   DateTime @default(now())
+  /// Phụ huynh đồng ý để cô giáo đọc hồ sơ cá nhân hóa (ChildMemory). Mặc định tắt, thu hồi được bất cứ lúc nào.
+  profileSharedWithTeacher Boolean   @default(false)
+  profileSharedAt          DateTime?
+  profileSharedBy          String?
+
+  class       Class               @relation(fields: [classId], references: [id])
+  parents     StudentParent[]
+  assessments StudentAssessment[]
+  alerts      BehavioralAlert[]
+  feedbacks   ParentFeedback[]
+  tokens      ParentToken[]
+  childMemories    ChildMemory[]
+  learningSessions LearningSession[]
+}
+
+model StudentParent {
+  studentId String
+  parentId  String
+
+  student Student @relation(fields: [studentId], references: [id])
+  parent  User    @relation(fields: [parentId], references: [id])
+
+  @@id([studentId, parentId])
+}
+
+model LessonPlan {
+  id         String    @id @default(uuid())
+  classId    String
+  teacherId  String
+  status     String    @default("ai_draft") // ai_draft | needs_review | approved | shared
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  approvedAt DateTime?
+  approvedBy String?
+
+  // Tham số đầu vào
+  ageGroup        String
+  developmentArea String
+  stemEnabled     Boolean @default(false)
+  folkGameEnabled Boolean @default(false)
+  topic           String
+  duration        Int
+  space           String // indoor | outdoor
+  materials       Json // string[]
+  classNotes      String?
+
+  // Nội dung AI sinh (có cấu trúc)
+  gameName            String?
+  legalReference      Json?
+  safetyWarnings      Json?
+  objectives          Json? // string[]
+  preparation         Json? // string[]
+  procedure           Json?
+  teacherScript       String?
+  flashcardPrompts    Json? // string[]
+  observationCriteria Json? // string[]
+  eqQuestions         Json? // string[]
+  guardViolations     Json? // Violation[] do guardrail ghi nhận
+
+  class       Class                  @relation(fields: [classId], references: [id])
+  teacher     User                   @relation(fields: [teacherId], references: [id])
+  versions    PlanVersion[]
+  checklists  ObservationChecklist[]
+  parentCards ParentCard[]
+}
+
+model PlanVersion {
+  id                String   @id @default(uuid())
+  planId            String
+  versionNumber     Int
+  editedBy          String
+  editedAt          DateTime @default(now())
+  sectionEdited     String
+  changeDescription String
+  contentSnapshot   String
+
+  plan LessonPlan @relation(fields: [planId], references: [id])
+
+  @@unique([planId, versionNumber])
+}
+
+model ObservationChecklist {
+  id           String    @id @default(uuid())
+  lessonPlanId String
+  classId      String
+  date         DateTime
+  criteria     Json // string[]
+  savedAt      DateTime?
+
+  lessonPlan  LessonPlan          @relation(fields: [lessonPlanId], references: [id])
+  assessments StudentAssessment[]
+}
+
+model StudentAssessment {
+  id            String  @id @default(uuid())
+  checklistId   String
+  studentId     String
+  overallRating String // excellent | achieved | needs_practice
+  ratings       Json // Record<criterionIndex, rating>
+  note          String?
+
+  checklist ObservationChecklist @relation(fields: [checklistId], references: [id])
+  student   Student              @relation(fields: [studentId], references: [id])
+
+  @@unique([checklistId, studentId])
+}
+
+model BehavioralAlert {
+  id                String   @id @default(uuid())
+  studentId         String
+  pattern           String
+  weekCount         Int
+  skillArea         String
+  suggestedActivity String
+  disclaimer        String   @default("Đây không phải chẩn đoán y khoa hay kết luận tâm lý.")
+  createdAt         DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model ParentCard {
+  id           String   @id @default(uuid())
+  lessonPlanId String
+  classId      String
+  date         DateTime
+  status       String   @default("draft") // draft | sent
+  content      Json
+
+  lessonPlan LessonPlan       @relation(fields: [lessonPlanId], references: [id])
+  feedbacks  ParentFeedback[]
+  tokens     ParentToken[]
+}
+
+/// Link riêng cho từng phụ huynh x bé x thẻ (màn hình 7: /parent/[token])
+model ParentToken {
+  token     String   @id
+  cardId    String
+  studentId String
+  parentId  String
+  createdAt DateTime @default(now())
+
+  card    ParentCard @relation(fields: [cardId], references: [id])
+  student Student    @relation(fields: [studentId], references: [id])
+  parent  User       @relation(fields: [parentId], references: [id])
+
+  @@unique([cardId, studentId, parentId])
+}
+
+model ParentFeedback {
+  id          String   @id @default(uuid())
+  cardId      String
+  studentId   String
+  parentId    String
+  response    String // completed | needs_practice
+  message     String?
+  respondedAt DateTime @default(now())
+
+  card    ParentCard @relation(fields: [cardId], references: [id])
+  student Student    @relation(fields: [studentId], references: [id])
+  parent  User       @relation(fields: [parentId], references: [id])
+
+  @@unique([cardId, studentId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String? // null: sự kiện từ tác nhân chưa xác định (vd. token lạ)
+  action    String // login | approve_plan | export_report | access_denied | ...
+  target    String?
+  details   String?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([timestamp])
+}
+
+/// Một cuộc trò chuyện của giáo viên với trợ lý. `summary` là trí nhớ cuộn của phần hội thoại cũ.
+model Conversation {
+  id          String   @id
+  userId      String
+  title       String   @default("Cuộc trò chuyện mới")
+  summary     String   @default("")
+  /// Số tin nhắn đầu tiên (theo seq) đã được gộp vào summary
+  summaryUpTo Int      @default(0)
+  focusPlanId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id             String   @id
+  conversationId String
+  seq            Int
+  role           String // user | assistant
+  /// UIMessage.parts (văn bản + thẻ kết quả data-card)
+  parts          Json
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, seq])
+}
+
+/// Trí nhớ dài hạn: sự thật/ưu tiên bền vững của cô về lớp, được nạp vào mọi cuộc trò chuyện.
+model TeacherMemory {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+/// Trí nhớ dài hạn riêng của từng bé (sở thích, điều bé thích làm, cách bé phản ứng tốt). Dùng để cá nhân hóa.
+model ChildMemory {
+  id        String   @id @default(uuid())
+  studentId String
+  content   String
+  /// parent: phụ huynh nhập | ai-session: AI chắt lọc từ phiên học ở nhà | teacher: cô ghi nhận
+  source    String
+  authorId  String?
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, createdAt])
+}
+
+/// Một phiên dùng ở nhà (iPad của phụ huynh). Bộ nhớ ngắn hạn ở RAM trình duyệt, đóng/ẩn tab mới ghi vào đây.
+model LearningSession {
+  /// UUID do client sinh, nên gửi lại nhiều lần vẫn idempotent
+  id         String   @id
+  studentId  String
+  parentId   String
+  events     Json // SessionEvent[]
+  transcript Json // { role, text }[] cuộc trò chuyện với trợ lý gia đình
+  lastSeq    Int      @default(0)
+  summary    String   @default("")
+  /// true khi phiên đã được AI chắt lọc thành ChildMemory
+  distilled  Boolean  @default(false)
+  startedAt  DateTime @default(now())
+  endedAt    DateTime?
+  updatedAt  DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+  parent  User    @relation(fields: [parentId], references: [id])
+
+  @@index([studentId, updatedAt])
+}
