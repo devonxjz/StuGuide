@@ -6,10 +6,12 @@ import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Image from "next/image";
-import { Bot, ClipboardCheck, HeartHandshake, PlusCircle, RotateCcw, Sparkles, Square, Users, Wand2, WifiOff } from "lucide-react";
+import { AlertCircle, ClipboardCheck, PlusCircle, RotateCcw, Sparkles, Square, Users, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
+import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
+import { useDeviceQuota } from "@/hooks/use-device-quota";
 import { cn } from "@/lib/utils";
 import type { StatusData, StuGuideMessage } from "@/types/chat";
 import { ChatActionsContext } from "./chat-context";
@@ -63,11 +65,21 @@ export function ChatWorkspace({
   const [activity, setActivity] = useState<StatusData | null>(null);
   const [busyNotice, setBusyNotice] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { quota, refresh: refreshQuota } = useDeviceQuota();
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport<StuGuideMessage>({
         api: "/api/chat",
+        fetch: async (input, init) => {
+          const res = await fetch(input, init);
+          if (res.status === 429) {
+            const data = await res.clone().json().catch(() => ({}));
+            const msg = data?.error?.message ?? "Quá hạn sử dụng, bạn phải mua thêm lượt";
+            throw new Error(msg);
+          }
+          return res;
+        },
         // Server giữ lịch sử, trí nhớ và giáo án đang làm việc: client chỉ gửi tin mới nhất của cô
         prepareSendMessagesRequest: ({ id, messages }) => ({ body: { id, message: messages[messages.length - 1] } }),
       }),
@@ -84,11 +96,20 @@ export function ChatWorkspace({
     },
     onFinish: () => {
       setActivity(null);
+      void refreshQuota();
       // giữ URL theo cuộc trò chuyện (không remount) và làm mới cột danh sách/trí nhớ
       if (!new URLSearchParams(window.location.search).get("c")) window.history.replaceState(null, "", `/teacher?c=${conversationId}`);
       router.refresh();
     },
-    onError: () => setBusyNotice("Hệ thống AI phản hồi hơi lâu hoặc đang bận. Cô có thể chờ thêm hoặc gửi lại giúp mình nhé."),
+    onError: (err) => {
+      void refreshQuota();
+      const msg = err?.message || "";
+      if (msg.includes("Quá hạn") || msg.includes("ERR-QUOTA-EXCEEDED")) {
+        setBusyNotice("Quá hạn sử dụng, bạn phải mua thêm lượt");
+      } else {
+        setBusyNotice("Hệ thống AI phản hồi hơi lâu hoặc đang bận. Cô có thể chờ thêm hoặc gửi lại giúp mình nhé.");
+      }
+    },
   });
 
   const busy = status === "submitted" || status === "streaming";
@@ -99,6 +120,10 @@ export function ChatWorkspace({
     return () => clearTimeout(timer);
   }, [busy]);
   const send = (text: string) => {
+    if (quota.isExceeded) {
+      setBusyNotice("Quá hạn sử dụng, bạn phải mua thêm lượt");
+      return;
+    }
     setBusyNotice(null);
     void sendMessage({ text });
   };
@@ -130,27 +155,24 @@ export function ChatWorkspace({
         <div className="bg-playful-dots bg-white scroll-thin flex-1 overflow-y-auto px-4 py-6 md:px-8">
           <div className="mx-auto max-w-3xl space-y-5">
             {messages.length === 0 ? (
-              <Welcome teacherName={teacherName} className={className} onPick={send} />
+              <Welcome teacherName={teacherName} className={className} onPick={send} quota={quota} />
             ) : (
               messages.map((m) => <MessageView key={m.id} message={m} restored={restoredIds.has(m.id)} />)
             )}
 
             {showTyping && (
               <div className="flex items-start gap-3" aria-live="polite">
-                <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-lilac-soft text-lilac-strong">
-                  <Bot className="size-4" aria-hidden />
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-tr from-primary to-violet-500 text-white">
+                  <Sparkles className="size-4" aria-hidden />
                 </span>
-                <div className="rounded-2xl rounded-tl-md border bg-card px-4 py-3 shadow-soft">
+                <div className="py-1.5">
                   {activity?.type === "step" ? (
                     <AiLoadingStepper current={activity.step} />
                   ) : (
                     <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                      <span className="dot-bounce inline-flex gap-1" aria-hidden>
-                        <span className="size-1.5 rounded-full bg-lilac" />
-                        <span className="size-1.5 rounded-full bg-lilac" />
-                        <span className="size-1.5 rounded-full bg-lilac" />
-                      </span>
+                      <span className="text-shimmer font-medium">
                       {activity?.type === "tool" ? `${TOOL_LABELS[activity.name] ?? "Đang xử lý"}…` : "StuGuide đang suy nghĩ…"}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -158,12 +180,26 @@ export function ChatWorkspace({
             )}
 
             {busyNotice && (
-              <div role="alert" className="flex flex-wrap items-center gap-3 rounded-2xl border border-sun/50 bg-sun-soft p-4 text-sm text-sun-strong">
-                <WifiOff className="size-5 shrink-0" aria-hidden />
+              <div
+                role="alert"
+                className={cn(
+                  "flex flex-wrap items-center gap-3 rounded-2xl border p-4 text-sm",
+                  busyNotice.includes("Quá hạn")
+                    ? "border-rose-300 bg-rose-50 text-rose-800"
+                    : "border-sun/50 bg-sun-soft text-sun-strong",
+                )}
+              >
+                {busyNotice.includes("Quá hạn") ? (
+                  <AlertCircle className="size-5 shrink-0 text-rose-600" aria-hidden />
+                ) : (
+                  <WifiOff className="size-5 shrink-0" aria-hidden />
+                )}
                 <p className="min-w-0 flex-1 font-medium">{busyNotice}</p>
-                <Button size="sm" variant="sun" onClick={retry}>
-                  <RotateCcw /> Gửi lại
-                </Button>
+                {!quota.isExceeded && !busyNotice.includes("Quá hạn") && (
+                  <Button size="sm" variant="sun" onClick={retry}>
+                    <RotateCcw /> Gửi lại
+                  </Button>
+                )}
               </div>
             )}
             {error && !busyNotice && <p className="sr-only">{error.message}</p>}
@@ -173,10 +209,19 @@ export function ChatWorkspace({
 
         <div className="border-t bg-background/90 px-4 py-3 backdrop-blur md:px-8">
           <div className="mx-auto max-w-3xl space-y-2">
-            {messages.length > 0 && !busy && (
+            {quota.isExceeded && (
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-rose-800 animate-pop-in">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0 text-rose-600" aria-hidden />
+                  <span className="text-xs sm:text-sm font-bold">Quá hạn sử dụng, bạn phải mua thêm lượt</span>
+                </div>
+                <DeviceQuotaBadge quota={quota} />
+              </div>
+            )}
+            {messages.length > 0 && !busy && !quota.isExceeded && (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {["Phê duyệt giáo án này", "Viết lại lời dẫn vui hơn", "Soạn thẻ nhiệm vụ 5 phút cho phụ huynh", "Bé nào cần quan sát sâu?"].map((s) => (
-                  <button key={s} type="button" onClick={() => send(s)} className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary hover:text-foreground">
+                  <button key={s} type="button" onClick={() => send(s)} className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-foreground">
                     {s}
                   </button>
                 ))}
@@ -184,7 +229,11 @@ export function ChatWorkspace({
             )}
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <Composer onSend={send} busy={busy} />
+                <Composer
+                  onSend={send}
+                  busy={busy || quota.isExceeded}
+                  placeholder={quota.isExceeded ? "Quá hạn sử dụng, bạn phải mua thêm lượt" : undefined}
+                />
               </div>
               {busy && (
                 <Button variant="outline" size="icon" aria-label="Dừng" onClick={() => stop()}>
@@ -200,57 +249,85 @@ export function ChatWorkspace({
   );
 }
 
-function Welcome({ teacherName, className, onPick }: { teacherName: string; className: string; onPick: (t: string) => void }) {
+function Welcome({
+  teacherName,
+  className,
+  onPick,
+  quota,
+}: {
+  teacherName: string;
+  className: string;
+  onPick: (t: string) => void;
+  quota?: import("@/hooks/use-device-quota").DeviceQuota;
+}) {
   const first = teacherName.split(" ").slice(-1)[0];
   return (
     <div className="space-y-8 py-6 animate-pop-in">
       <div className="text-center relative">
         {/* Hero Motion Graphic với ánh sáng hào quang và floating logo StuGuide */}
-        <div className="relative mx-auto mb-4 size-20">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-blue-400 via-indigo-300 to-amber-300 blur-xl opacity-60 animate-pulse-soft" />
-          <span className="relative grid size-20 place-items-center rounded-3xl bg-white p-3 shadow-float border border-blue-100 animate-float">
+        <div className="relative mx-auto mb-5 size-14">
+          <div className="absolute -inset-3 rounded-full bg-gradient-to-tr from-blue-500/20 to-violet-500/20 blur-xl" />
+          <span className="relative grid size-14 place-items-center rounded-2xl bg-white p-2.5 shadow-soft border border-slate-200">
             <Image
               src="/stuguide-icon.png"
               alt="StuGuide Mascot"
               width={48}
               height={48}
-              className="size-11 object-contain drop-shadow-sm"
+              className="size-9 object-contain"
               priority
             />
-            <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-amber-400 text-white text-[10px] ring-2 ring-white font-bold shadow-2xs">
-              ✨
-            </span>
           </span>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/90 px-3.5 py-1 text-xs font-bold text-primary mb-3 shadow-2xs">
-          <Sparkles className="size-3.5 text-sun animate-pulse" />
-          StuGuide AI · Trợ Lý Giáo Viên Mầm Non & Hoạt Động Trẻ
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+            <Sparkles className="size-3.5 text-violet-600" />
+            StuGuide AI · Trợ Lý Giáo Viên Mầm Non & Hoạt Động Trẻ
+          </div>
+          <DeviceQuotaBadge quota={quota} />
         </div>
 
-        <h1 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-slate-900">
-          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng chơi gì ạ? 🎨🧸
+        <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl text-slate-900">
+          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng chơi gì ạ?
         </h1>
-        <p className="mx-auto mt-2 max-w-lg text-balance text-sm text-slate-600 font-medium leading-relaxed">
+        <p className="mx-auto mt-2 max-w-lg text-balance text-sm text-slate-500 leading-relaxed">
           Cô cứ nhắn tự nhiên như nói chuyện, mình sẽ soạn kế hoạch chuẩn TT 45, kiểm tra an toàn vật liệu và chuẩn bị thẻ 5 phút cho phụ huynh.
         </p>
+
+        {quota?.isExceeded && (
+          <div role="alert" className="mx-auto mt-4 max-w-lg rounded-2xl border border-rose-300 bg-rose-50 p-4 text-center text-rose-900 shadow-sm animate-pop-in">
+            <div className="flex items-center justify-center gap-2 font-bold text-sm sm:text-base">
+              <AlertCircle className="size-5 text-rose-600 shrink-0" />
+              <span>Quá hạn sử dụng, bạn phải mua thêm lượt</span>
+            </div>
+            <p className="mt-1 text-xs text-rose-700">
+              Thiết bị đã đạt giới hạn tối đa 5 lượt làm việc với AI. Không thể tiếp tục truy cập tính năng AI. Vui lòng mua thêm lượt để tiếp tục.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 3 Thẻ hành động nhanh với màu sắc đồ họa rực rỡ & hiệu ứng tương tác mượt mà */}
       <div className="grid gap-4 sm:grid-cols-3">
         <button
           type="button"
+          disabled={quota?.isExceeded}
           onClick={() => onPick(FIRST_PROMPT)}
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-[0_12px_28px_rgba(0,82,204,0.12)] active:scale-[0.98]"
+          className={cn(
+            "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-300",
+            quota?.isExceeded
+              ? "opacity-60 cursor-not-allowed"
+              : "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15)] active:scale-[0.99]",
+          )}
         >
           <div>
-            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white shadow-[0_6px_16px_rgba(0,82,204,0.25)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <PlusCircle className="size-6" aria-hidden />
+            <div className="mb-4 inline-grid size-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors group-hover:border-primary/30 group-hover:text-primary">
+              <PlusCircle className="size-5" aria-hidden />
             </div>
             <span className="block font-black text-base text-slate-900 group-hover:text-primary transition-colors flex items-center gap-1.5">
-              Tạo Kế hoạch & Trò chơi <span className="text-xs">🚀</span>
+              Tạo Kế hoạch & Trò chơi
             </span>
-            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed font-medium">
+            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed">
               Một câu yêu cầu là có ngay bản nháp trích dẫn VBHN 01, luật an toàn, lời dẫn truyện.
             </span>
           </div>
@@ -261,41 +338,47 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
 
         <Link
           href="/teacher/assess"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:shadow-[0_12px_28px_rgba(245,158,11,0.12)] active:scale-[0.98]"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15)] active:scale-[0.99]"
         >
           <div>
-            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white shadow-[0_6px_16px_rgba(245,158,11,0.25)] transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
-              <ClipboardCheck className="size-6" aria-hidden />
+            <div className="mb-4 inline-grid size-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors group-hover:border-primary/30 group-hover:text-primary">
+              <ClipboardCheck className="size-5" aria-hidden />
             </div>
-            <span className="block font-black text-base text-slate-900 group-hover:text-amber-700 transition-colors flex items-center gap-1.5">
-              Ghi nhận Quan sát (30s) <span className="text-xs">📝</span>
+            <span className="flex items-center gap-1.5 font-semibold text-sm text-slate-900">
+              Ghi nhận Quan sát (30s)
             </span>
-            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed font-medium">
+            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed">
               Tích chọn cả lớp một chạm thần tốc, AI tự động phát hiện bé cần quan sát sâu.
             </span>
           </div>
-          <span className="mt-4 inline-flex items-center text-xs font-bold text-amber-700 gap-1">
+          <span className="mt-4 inline-flex items-center text-xs font-medium text-slate-500 gap-1 transition-colors group-hover:text-primary">
             Mở checklist &rarr;
           </span>
         </Link>
 
         <button
           type="button"
+          disabled={quota?.isExceeded}
           onClick={() => onPick("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-rose-300 hover:shadow-[0_12px_28px_rgba(244,63,94,0.12)] active:scale-[0.98]"
+          className={cn(
+            "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-300",
+            quota?.isExceeded
+              ? "opacity-60 cursor-not-allowed"
+              : "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15)] active:scale-[0.99]",
+          )}
         >
           <div>
-            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-[0_6px_16px_rgba(244,63,94,0.25)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <Users className="size-6" aria-hidden />
+            <div className="mb-4 inline-grid size-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors group-hover:border-primary/30 group-hover:text-primary">
+              <Users className="size-5" aria-hidden />
             </div>
-            <span className="block font-black text-base text-slate-900 group-hover:text-rose-700 transition-colors flex items-center gap-1.5">
-              Thẻ hoạt động Phụ huynh <span className="text-xs">💖</span>
+            <span className="flex items-center gap-1.5 font-semibold text-sm text-slate-900">
+              Thẻ hoạt động Phụ huynh
             </span>
-            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed font-medium">
+            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed">
               Nhiệm vụ 5 phút không màn hình buổi tối cho bé, theo dõi phản hồi realtime.
             </span>
           </div>
-          <span className="mt-4 inline-flex items-center text-xs font-bold text-rose-700 gap-1">
+          <span className="mt-4 inline-flex items-center text-xs font-medium text-slate-500 gap-1 transition-colors group-hover:text-primary">
             Soạn thẻ &rarr;
           </span>
         </button>
@@ -303,22 +386,18 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
 
       {/* Danh sách gợi ý câu hỏi dạng pill sạch sẽ với icon sinh động */}
       <div className="flex flex-wrap justify-center gap-2 pt-2">
-        {SUGGESTIONS.map((s, idx) => {
-          const tones = [
-            "hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50/60",
-            "hover:border-amber-400 hover:text-amber-800 hover:bg-amber-50/60",
-            "hover:border-sky-400 hover:text-sky-700 hover:bg-sky-50/60",
-            "hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/60",
-          ];
-          const tone = tones[idx % tones.length];
+        {SUGGESTIONS.map((s) => {
           return (
             <button
               key={s}
               type="button"
+              disabled={quota?.isExceeded}
               onClick={() => onPick(s)}
               className={cn(
-                "rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs select-none",
-                tone
+                "rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 select-none",
+                quota?.isExceeded
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
               {s}

@@ -238,6 +238,152 @@
   animation-delay: 0.32s;
 }
 
+/* ───────────── Ngôn ngữ chuyển động kiểu SaaS: tiết chế, có chủ đích ───────────── */
+
+/* Lưới nền mảnh, mờ dần ra rìa */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Hiện dần khi cuộn tới (gắn data-reveal, component Reveal bật data-shown) */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(4px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal][data-shown="true"] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Dải chạy ngang vô tận */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+
+/* Con trỏ gõ chữ */
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+.typing-caret::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: currentColor;
+  animation: caret 1s steps(1) infinite;
+}
+
+/* Viền gradient xoay – dấu hiệu "AI đang hoạt động" */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes spin-angle {
+  to {
+    --angle: 360deg;
+  }
+}
+.ai-border {
+  position: relative;
+  isolation: isolate;
+}
+.ai-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--angle), #0052cc, #8b5cf6, #38bdf8, #0052cc);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: spin-angle 4s linear infinite;
+}
+.ai-border:focus-within::before,
+.ai-border[data-active="true"]::before {
+  opacity: 1;
+}
+
+/* Chữ gradient chuyển động nhẹ */
+@keyframes gradient-pan {
+  to {
+    background-position: 200% center;
+  }
+}
+.text-gradient-ai {
+  background: linear-gradient(90deg, #0052cc, #7c3aed, #0284c7, #0052cc);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 6s linear infinite;
+}
+
+/* Dòng quét sáng cho trạng thái "đang suy nghĩ" */
+.text-shimmer {
+  background: linear-gradient(90deg, #64748b 0%, #64748b 40%, #0f172a 50%, #64748b 60%, #64748b 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+  .animate-fade-up,
+  .animate-marquee,
+  .typing-caret::after,
+  .ai-border::before,
+  .text-gradient-ai,
+  .text-shimmer {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pop-in,
   .animate-float,

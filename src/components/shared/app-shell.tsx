@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Logo } from "./logo";
 import { LogoutButton } from "./logout-button";
+import { DeviceQuotaBadge } from "./device-quota-badge";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
 import type { Role } from "@/core/constants/status";
@@ -173,10 +174,13 @@ export function AppShell({
               <p className="text-[11px] text-slate-500 truncate font-medium">{subtitle}</p>
             </div>
           </div>
+          <div className="pt-2">
+            <DeviceQuotaBadge className="w-full justify-center" />
+          </div>
           <button
             type="button"
             onClick={logout}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-1.5 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all duration-200 shadow-2xs active:scale-[0.98]"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-1.5 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all duration-200 shadow-2xs active:scale-[0.98]"
           >
             <LogOut className="size-3.5" aria-hidden /> Đăng xuất
           </button>
@@ -195,8 +199,11 @@ export function AppShell({
               <span>🏫</span> {subtitle}
             </p>
           </div>
-          <div className="md:hidden">
-            <LogoutButton />
+          <div className="flex items-center gap-2.5">
+            <DeviceQuotaBadge />
+            <div className="md:hidden">
+              <LogoutButton />
+            </div>
           </div>
         </header>
 

@@ -43,6 +43,7 @@ next-env.d.ts
 
 # local data
 *.db
+!prisma/seed.db
 *.db-journal
 /src/generated
 .env.local

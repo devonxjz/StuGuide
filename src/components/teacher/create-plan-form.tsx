@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Sparkles } from "lucide-react";
+import { AlertCircle, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { AiLoadingStepper, type GenerationStepKey } from "@/components/shared/ai-loading-stepper";
+import { useDeviceQuota } from "@/hooks/use-device-quota";
 import { apiStream, ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { AGE_GROUPS } from "@/core/constants/age-groups";
@@ -28,6 +29,7 @@ const chip = (on: boolean) =>
 /** Màn hình 3 – Zero-Prompt UI: chọn nhanh, không cần học cách viết câu lệnh. */
 export function CreatePlanForm({ defaultAge }: { defaultAge: string }) {
   const router = useRouter();
+  const { quota } = useDeviceQuota();
   const [ageGroup, setAgeGroup] = useState<string>(defaultAge);
   const [area, setArea] = useState<string>("");
   const [stem, setStem] = useState(false);
@@ -46,6 +48,10 @@ export function CreatePlanForm({ defaultAge }: { defaultAge: string }) {
   const toggle = (m: string) => setMaterials((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
 
   const submit = async () => {
+    if (quota.isExceeded) {
+      setError("Quá hạn sử dụng, bạn phải mua thêm lượt");
+      return;
+    }
     setError(null);
     const parsed = createPlanInputSchema.safeParse({ ageGroup, developmentArea: area || undefined, topic, materials, duration, space, stemEnabled: stem, folkGameEnabled: folk });
     if (!parsed.success) {
@@ -141,12 +147,34 @@ export function CreatePlanForm({ defaultAge }: { defaultAge: string }) {
           {err("materials")}
         </div>
 
+        {quota.isExceeded && (
+          <div role="alert" className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-800">
+            <AlertCircle className="size-4 shrink-0 text-rose-600" aria-hidden />
+            <span className="font-bold">Quá hạn sử dụng, bạn phải mua thêm lượt</span>
+          </div>
+        )}
+
         {step ? (
           <div className="rounded-2xl bg-lilac-soft/60 p-4"><AiLoadingStepper current={step} revisions={revisions} /></div>
         ) : (
-          <Button size="lg" variant="ai" className="w-full sm:w-auto" onClick={submit}><Sparkles /> Tạo bản nháp bằng AI</Button>
+          <Button size="lg" variant="ai" className="w-full sm:w-auto" disabled={quota.isExceeded} onClick={submit}>
+            <Sparkles /> Tạo bản nháp bằng AI
+          </Button>
         )}
-        {error && <p role="alert" className="rounded-xl bg-sun-soft px-4 py-3 text-sm font-medium text-sun-strong">{error}</p>}
+        {error && (
+          <p
+            role="alert"
+            className={cn(
+              "rounded-xl px-4 py-3 text-sm font-medium",
+              error.includes("Quá hạn")
+                ? "flex items-center gap-2 border border-rose-200 bg-rose-50 font-bold text-rose-800"
+                : "bg-sun-soft text-sun-strong",
+            )}
+          >
+            {error.includes("Quá hạn") && <AlertCircle className="size-4 shrink-0 text-rose-600" aria-hidden />}
+            {error}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

@@ -52,7 +52,7 @@ export function getContainer(): Promise<Container> {
   return (g.__sgContainer ??= (async () => {
     const c = build();
     try {
-      if (process.env.NODE_ENV !== "production" && (await c.prisma.user.count()) === 0) await seedDemoData(c.prisma);
+      if ((await c.prisma.user.count()) === 0) await seedDemoData(c.prisma);
     } catch (error) {
       g.__sgContainer = undefined;
       throw new Error(`Chưa khởi tạo cơ sở dữ liệu. Hãy chạy "npm run setup" trước. (${(error as Error).message})`);

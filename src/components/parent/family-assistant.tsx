@@ -1,12 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Bot, DatabaseZap, RotateCcw, Send, Sparkles } from "lucide-react";
+import { AlertCircle, Bot, DatabaseZap, RotateCcw, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardRenderer } from "@/components/teacher/chat/cards/card-renderer";
+import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
+import { useDeviceQuota } from "@/hooks/use-device-quota";
 import { api, ApiError } from "@/lib/api-client";
 import { messagesToTurns } from "@/lib/message-text";
 import { cn } from "@/lib/utils";
@@ -27,11 +29,21 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
   const [busyTonight, setBusyTonight] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  const { quota, refresh: refreshQuota } = useDeviceQuota();
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport<StuGuideMessage>({
         api: "/api/family/chat",
+        fetch: async (input, init) => {
+          const res = await fetch(input, init);
+          if (res.status === 429) {
+            const data = await res.clone().json().catch(() => ({}));
+            const msg = data?.error?.message ?? "Quá hạn sử dụng, bạn phải mua thêm lượt";
+            throw new Error(msg);
+          }
+          return res;
+        },
         // Client gửi cửa sổ hội thoại đang giữ trong RAM; server không có lịch sử riêng
         prepareSendMessagesRequest: ({ messages }) => ({ body: { studentId, turns: messagesToTurns(messages) } }),
       }),
@@ -39,7 +51,18 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
   );
   const { messages, sendMessage, regenerate, status } = useChat<StuGuideMessage>({
     transport,
-    onError: () => setError("Hệ thống AI đang bận, bố mẹ thử gửi lại giúp mình nhé."),
+    onFinish: () => {
+      void refreshQuota();
+    },
+    onError: (err) => {
+      void refreshQuota();
+      const msg = err?.message || "";
+      if (msg.includes("Quá hạn") || msg.includes("ERR-QUOTA-EXCEEDED")) {
+        setError("Quá hạn sử dụng, bạn phải mua thêm lượt");
+      } else {
+        setError("Hệ thống AI đang bận, bố mẹ thử gửi lại giúp mình nhé.");
+      }
+    },
   });
   const busy = status === "submitted" || status === "streaming";
 
@@ -54,6 +77,10 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
   const send = (text: string) => {
     const value = text.trim();
     if (!value || busy) return;
+    if (quota.isExceeded) {
+      setError("Quá hạn sử dụng, bạn phải mua thêm lượt");
+      return;
+    }
     setError(null);
     store?.record("message", { role: "parent", length: value.length });
     void sendMessage({ text: value });
@@ -61,13 +88,19 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
   };
 
   const suggestTonight = async () => {
+    if (quota.isExceeded) {
+      setError("Quá hạn sử dụng, bạn phải mua thêm lượt");
+      return;
+    }
     setBusyTonight(true);
     setError(null);
     try {
       const res = await api<{ activity: HomeActivity }>("/api/family/activity", { method: "POST", body: { studentId } });
       setTonight(res.activity);
       store?.record("view", { what: "tonight-activity", title: res.activity.title });
+      void refreshQuota();
     } catch (e) {
+      void refreshQuota();
       setError(e instanceof ApiError ? e.message : "Chưa soạn được, bố mẹ thử lại nhé.");
     } finally {
       setBusyTonight(false);
@@ -78,16 +111,31 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
     <Card>
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2"><Bot className="size-5 text-lilac-strong" aria-hidden /> Trợ lý gia đình của {childName}</CardTitle>
-        <Button size="sm" variant="ai" disabled={busyTonight || busy} onClick={suggestTonight}>
-          <Sparkles /> {busyTonight ? "Đang soạn…" : "Gợi ý tối nay cho con"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <DeviceQuotaBadge quota={quota} />
+          <Button size="sm" variant="ai" disabled={busyTonight || busy || quota.isExceeded} onClick={suggestTonight}>
+            <Sparkles /> {busyTonight ? "Đang soạn…" : "Gợi ý tối nay cho con"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="scroll-thin max-h-[32rem] min-h-40 space-y-4 overflow-y-auto pr-1" aria-live="polite">
           {messages.length === 0 && !tonight && (
             <div className="space-y-3 py-2">
               <p className="text-sm text-muted-foreground">Bố mẹ cứ hỏi tự nhiên. Mình biết {childName} thích gì và đang học gì ở lớp nên gợi ý sẽ riêng cho bé.</p>
-              <div className="flex flex-wrap gap-2">{QUICK.map((q) => <button key={q} type="button" onClick={() => send(q)} className="min-h-11 rounded-full border bg-card px-4 text-sm hover:border-primary">{q}</button>)}</div>
+              <div className="flex flex-wrap gap-2">
+                {QUICK.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    disabled={busy || quota.isExceeded}
+                    onClick={() => send(q)}
+                    className="min-h-11 rounded-full border bg-card px-4 text-sm hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {messages.map((m) => (
@@ -104,25 +152,46 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
           {tonight && <CardRenderer data={{ kind: "home-activity", studentId, activity: tonight }} />}
           {busy && <p className="text-sm text-muted-foreground">Mình đang soạn cho {childName}…</p>}
           {error && (
-            <p role="alert" className="flex flex-wrap items-center gap-2 rounded-xl bg-sun-soft px-3 py-2 text-sm font-medium text-sun-strong">
-              {error} <Button size="sm" variant="sun" onClick={() => void regenerate()}><RotateCcw /> Gửi lại</Button>
+            <p
+              role="alert"
+              className={cn(
+                "flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium",
+                error.includes("Quá hạn")
+                  ? "border border-rose-200 bg-rose-50 text-rose-800"
+                  : "bg-sun-soft text-sun-strong",
+              )}
+            >
+              {error.includes("Quá hạn") && <AlertCircle className="size-4 shrink-0 text-rose-600" aria-hidden />}
+              {error}
+              {!error.includes("Quá hạn") && (
+                <Button size="sm" variant="sun" onClick={() => void regenerate()}>
+                  <RotateCcw /> Gửi lại
+                </Button>
+              )}
             </p>
           )}
           <div ref={bottom} />
         </div>
 
+        {quota.isExceeded && (
+          <div role="alert" className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 animate-pop-in">
+            <AlertCircle className="size-4 shrink-0 text-rose-600" aria-hidden />
+            <span className="font-bold">Quá hạn sử dụng, bạn phải mua thêm lượt</span>
+          </div>
+        )}
+
         <form className="flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
           <textarea
             value={input}
             rows={2}
-            disabled={busy}
+            disabled={busy || quota.isExceeded}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(input); } }}
             aria-label="Nhắn cho trợ lý gia đình"
-            placeholder={`Hỏi về ${childName}, hoặc kể về bé để mình nhớ…`}
+            placeholder={quota.isExceeded ? "Quá hạn sử dụng, bạn phải mua thêm lượt" : `Hỏi về ${childName}, hoặc kể về bé để mình nhớ…`}
             className="min-h-12 flex-1 resize-none rounded-2xl border bg-card px-4 py-3 text-base placeholder:text-muted-foreground/70 focus-visible:border-primary disabled:opacity-60"
           />
-          <Button type="submit" size="lg" aria-label="Gửi" disabled={busy || !input.trim()}><Send /></Button>
+          <Button type="submit" size="lg" aria-label="Gửi" disabled={busy || quota.isExceeded || !input.trim()}><Send /></Button>
         </form>
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <DatabaseZap className="mt-0.5 size-3.5 shrink-0" aria-hidden />

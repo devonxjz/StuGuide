@@ -74,5 +74,69 @@ export function createRateLimiter(): RateLimiter {
   };
 }
 
-const g = globalThis as unknown as { __sgRateLimiter?: RateLimiter };
+/** Giới hạn tối đa số lượt tương tác AI cho mỗi thiết bị */
+export const DEVICE_AI_LIMIT = Number(process.env.DEVICE_AI_LIMIT) || 5;
+
+export interface DeviceQuotaResult {
+  ok: boolean;
+  limit: number;
+  used: number;
+  remaining: number;
+  isExceeded: boolean;
+}
+
+export interface DeviceQuotaLimiter {
+  getQuota(deviceId: string): DeviceQuotaResult;
+  consume(deviceId: string): DeviceQuotaResult;
+  reset(deviceId?: string): void;
+}
+
+export function createDeviceQuotaLimiter(limit = DEVICE_AI_LIMIT): DeviceQuotaLimiter {
+  const store = new Map<string, number>();
+
+  return {
+    getQuota(deviceId: string): DeviceQuotaResult {
+      const used = store.get(deviceId) ?? 0;
+      const isExceeded = used >= limit;
+      return {
+        ok: !isExceeded,
+        limit,
+        used,
+        remaining: Math.max(0, limit - used),
+        isExceeded,
+      };
+    },
+    consume(deviceId: string): DeviceQuotaResult {
+      const used = store.get(deviceId) ?? 0;
+      if (used >= limit) {
+        return {
+          ok: false,
+          limit,
+          used,
+          remaining: 0,
+          isExceeded: true,
+        };
+      }
+      const nextUsed = used + 1;
+      store.set(deviceId, nextUsed);
+      return {
+        ok: true,
+        limit,
+        used: nextUsed,
+        remaining: Math.max(0, limit - nextUsed),
+        isExceeded: nextUsed >= limit,
+      };
+    },
+    reset(deviceId?: string) {
+      if (deviceId) store.delete(deviceId);
+      else store.clear();
+    },
+  };
+}
+
+const g = globalThis as unknown as {
+  __sgRateLimiter?: RateLimiter;
+  __sgDeviceQuotaLimiter?: DeviceQuotaLimiter;
+};
 export const getRateLimiter = () => (g.__sgRateLimiter ??= createRateLimiter());
+export const getDeviceQuotaLimiter = () => (g.__sgDeviceQuotaLimiter ??= createDeviceQuotaLimiter());

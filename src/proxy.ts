@@ -38,6 +38,16 @@ export function proxy(request: NextRequest) {
   }
 
   for (const [k, v] of Object.entries(securityHeaders({ dev, isApi }))) response.headers.set(k, v);
+
+  if (!request.cookies.has("sg_device_id")) {
+    response.cookies.set("sg_device_id", crypto.randomUUID(), {
+      path: "/",
+      maxAge: 365 * 24 * 3600,
+      sameSite: "lax",
+      httpOnly: false,
+    });
+  }
+
   return response;
 }
 

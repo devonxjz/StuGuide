@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, HeartHandshake, KeyRound, LoaderCircle, Mail, Phone, Sparkles } from "lucide-react";
+import { KeyRound, LoaderCircle, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,19 +43,15 @@ export function LoginPanel() {
     <div className="space-y-6 animate-pop-in">
       <div className="text-center">
         <Logo className="mx-auto w-fit" />
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/90 px-3.5 py-1 text-xs font-bold text-primary shadow-2xs">
-          <Sparkles className="size-3.5 text-sun animate-pulse" />
-          StuGuide · Đồng Hành Cùng Trẻ Khôn Lớn
-        </div>
-        <h1 className="mt-3 text-balance text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="mt-6 text-balance text-3xl font-semibold tracking-tight text-slate-900">
           Chào mừng đến với StuGuide
         </h1>
-        <p className="mt-2 text-balance text-slate-600 font-medium text-sm sm:text-base">
+        <p className="mt-2 text-balance text-slate-500 text-sm">
           AI hỗ trợ giáo viên & phụ huynh – Trẻ học qua trải nghiệm thật (Screen-Free)
         </p>
       </div>
 
-      <Card className="border-border/80 bg-white shadow-float backdrop-blur rounded-3xl">
+      <Card className="border-slate-200 bg-white/90 shadow-[0_24px_64px_-24px_rgba(15,23,42,0.18)] backdrop-blur rounded-2xl">
         <CardContent className="space-y-4 p-6 sm:p-7">
           <Tabs<Mode>
             className="w-full"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearDraft, loadDraft, useAutoSave } from "@/hooks/use-auto-save";
 
@@ -45,20 +45,21 @@ export function Composer({
   };
 
   return (
+    <div className="ai-border rounded-2xl" data-active={busy}>
     <form
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
-      className="flex items-end gap-2 rounded-3xl border border-slate-200 bg-white p-2 shadow-soft focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100 transition-all duration-200"
+      className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.08)] focus-within:border-transparent transition-colors duration-200"
     >
       <textarea
         ref={ref}
         value={text}
         rows={1}
         disabled={busy}
-        aria-label="Nhắn cho Mầm Học AI – StuGuide"
-        placeholder={placeholder ?? "Nhắn cho StuGuide AI… ví dụ: Soạn trò chơi cho lớp 4–5 tuổi với bóng và rổ nhựa 🧸"}
+        aria-label="Nhắn cho StuGuide"
+        placeholder={placeholder ?? "Nhắn cho StuGuide… ví dụ: Soạn trò chơi cho lớp 4–5 tuổi với bóng và rổ nhựa"}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -73,10 +74,11 @@ export function Composer({
         size="icon"
         aria-label="Gửi"
         disabled={busy || !text.trim()}
-        className="size-9.5 rounded-2xl shadow-colorful font-bold transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-primary to-blue-600 text-white"
+        className="size-9 rounded-xl bg-slate-900 text-white shadow-none hover:bg-slate-800 hover:translate-y-0 bg-none"
       >
-        <Send className="size-4" />
+        <ArrowUp className="size-4" />
       </Button>
     </form>
+    </div>
   );
 }

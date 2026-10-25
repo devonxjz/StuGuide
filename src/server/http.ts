@@ -6,7 +6,7 @@ import type { Actor } from "@/services/types";
 import { getContainer, type Container } from "./container";
 import { resolveSession, SESSION_COOKIE, type Session } from "./session";
 import { readJsonBody } from "./security/input";
-import { getRateLimiter, RATE_RULES, type RateBucket } from "./security/rate-limit";
+import { getRateLimiter, getDeviceQuotaLimiter, DEVICE_AI_LIMIT, RATE_RULES, type RateBucket } from "./security/rate-limit";
 import { bodyLimitFor } from "./security/request-guard";
 
 // Thông điệp lỗi validation mặc định bằng tiếng Việt (schema nào có thông điệp riêng thì dùng thông điệp đó)
@@ -67,12 +67,38 @@ export function route<
       const limited = getRateLimiter().hit(`${bucket}:${session?.id ?? clientIp(req)}`, RATE_RULES[bucket]);
       if (!limited.ok) return tooMany(limited.retryAfter);
 
+      if (bucket === "ai") {
+        const deviceId = getDeviceId(req);
+        if (deviceId) {
+          const currentQuota = getDeviceQuotaLimiter().getQuota(deviceId);
+          if (currentQuota.isExceeded) return quotaExceeded();
+        }
+      }
+
       const params = options.params ? options.params.parse((await ctx?.params) ?? {}) : undefined;
       const query = options.query ? options.query.parse(Object.fromEntries(req.nextUrl.searchParams)) : undefined;
       const body = options.body ? options.body.parse(await readJsonBody(req, bodyLimitFor(req.nextUrl.pathname))) : undefined;
 
+      if (bucket === "ai") {
+        const deviceId = getDeviceId(req);
+        if (deviceId) {
+          const quota = getDeviceQuotaLimiter().consume(deviceId);
+          if (!quota.ok) return quotaExceeded();
+        }
+      }
+
       const out = await fn({ req, c, session: session as HandlerArgs<A, PS, BS, QS>["session"], params: params as Out<PS>, body: body as Out<BS>, query: query as Out<QS> });
-      return out instanceof Response ? out : NextResponse.json(out ?? { ok: true });
+      const res = out instanceof Response ? out : NextResponse.json(out ?? { ok: true });
+      if (bucket === "ai") {
+        const deviceId = getDeviceId(req);
+        if (deviceId) {
+          const quota = getDeviceQuotaLimiter().getQuota(deviceId);
+          res.headers.set("X-Device-AI-Limit", String(quota.limit));
+          res.headers.set("X-Device-AI-Remaining", String(quota.remaining));
+          res.headers.set("X-Device-AI-Used", String(quota.used));
+        }
+      }
+      return res;
     } catch (e) {
       return toErrorResponse(e);
     }
@@ -86,6 +112,40 @@ export const tooMany = (retryAfter: number) =>
     { error: { code: "ERR-RATE-01", message: `Thao tác quá nhanh, vui lòng thử lại sau ${retryAfter} giây` } },
     { status: 429, headers: { "Retry-After": String(retryAfter) } },
   );
+
+export const quotaExceeded = () =>
+  NextResponse.json(
+    {
+      error: {
+        code: "ERR-QUOTA-EXCEEDED",
+        message: "Quá hạn sử dụng, bạn phải mua thêm lượt",
+      },
+    },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": "86400",
+        "X-Device-AI-Limit": String(DEVICE_AI_LIMIT),
+        "X-Device-AI-Remaining": "0",
+        "X-Device-AI-Used": String(DEVICE_AI_LIMIT),
+      },
+    },
+  );
+
+export const DEVICE_COOKIE = "sg_device_id";
+
+/** Định danh thiết bị qua header x-device-id, cookie sg_device_id hoặc IP của client */
+export function getDeviceId(req: Request): string | null {
+  const headerId = req.headers.get("x-device-id");
+  if (headerId && /^[A-Za-z0-9_-]{8,64}$/.test(headerId)) return headerId;
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const match = /(?:^|;\s*)sg_device_id=([^;]+)/.exec(cookieHeader);
+  if (match?.[1] && /^[A-Za-z0-9_-]{8,64}$/.test(match[1])) return match[1];
+  if (process.env.NODE_ENV !== "test") {
+    return `ip:${clientIp(req)}`;
+  }
+  return null;
+}
 
 /** IP của client (sau reverse proxy tin cậy). Chỉ dùng làm khóa rate limit, không dùng để phân quyền. */
 export function clientIp(req: Request): string {

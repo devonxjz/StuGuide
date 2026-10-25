@@ -26,8 +26,8 @@ export interface RequestFacts {
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "POST", "PATCH", "DELETE"]);
 const MUTATING = new Set(["POST", "PATCH", "DELETE"]);
 
-/** API không cần phiên: đăng nhập/đăng xuất và liên kết riêng của phụ huynh (xác thực bằng token trong URL). */
-const PUBLIC_API = [/^\/api\/auth\/(login|logout)$/, /^\/api\/parent\/[A-Za-z0-9_-]{1,64}$/, /^\/api\/feedback$/];
+/** API không cần phiên: đăng nhập/đăng xuất, quota thiết bị và liên kết riêng của phụ huynh (xác thực bằng token trong URL). */
+const PUBLIC_API = [/^\/api\/auth\/(login|logout)$/, /^\/api\/device\/quota(\/.*)?$/, /^\/api\/parent\/[A-Za-z0-9_-]{1,64}$/, /^\/api\/feedback$/];
 const PROTECTED_PAGES = /^\/(teacher|principal|family)(\/|$)/;
 
 /** Giới hạn body theo route (byte). Phiên học ở nhà chứa tới 500 sự kiện + 60 lượt hội thoại. */

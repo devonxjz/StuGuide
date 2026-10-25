@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogoutButton } from "@/components/shared/logout-button";
 import { Logo } from "@/components/shared/logo";
+import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
 import { requireSession } from "@/server/session";
 
 /** Cổng phụ huynh: tối ưu cho iPad (chạm lớn, bố cục rộng) và điện thoại. */
@@ -11,6 +12,7 @@ export default async function FamilyLayout({ children }: { children: React.React
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur md:px-8">
         <Link href="/family"><Logo /></Link>
         <div className="flex items-center gap-3">
+          <DeviceQuotaBadge />
           <span className="hidden text-sm font-medium sm:block">{session.fullName}</span>
           <LogoutButton />
         </div>
