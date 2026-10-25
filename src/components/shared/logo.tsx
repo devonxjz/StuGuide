@@ -25,9 +25,6 @@ export function Logo({ className, compact }: { className?: string; compact?: boo
             <span className="text-[18px] font-extrabold tracking-tight text-[#0052cc] group-hover:text-primary-strong transition-colors">
               StuGuide
             </span>
-            <span className="inline-flex items-center rounded-full bg-gradient-to-r from-sun to-coral px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-2xs">
-              MẦM NON ✨
-            </span>
           </div>
           <span className="block text-[11px] font-semibold text-[#0052cc]/75 tracking-tight">
             Lakofoxygen team

@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { messageToText, type StoredMessage } from "./context-builder";
 
-const SYSTEM = `Bạn quản lý trí nhớ hội thoại cho trợ lý giáo dục mầm non "Mầm Học AI".
+const SYSTEM = `Bạn quản lý trí nhớ hội thoại cho trợ lý giáo dục mầm non "StuGuide".
 Nhiệm vụ: cập nhật BẢN TÓM TẮT CUỘN bằng tiếng Việt từ bản tóm tắt cũ và các tin nhắn mới.
 Giữ lại: yêu cầu và quyết định của cô; độ tuổi, mảng phát triển, chủ đề, vật liệu đã chọn; ý tưởng sáng tạo đã chốt hoặc bị bỏ; các id quan trọng (planId, cardId) kèm tên giáo án và trạng thái; việc đang dở và bước tiếp theo.
 Bỏ: lời chào, lặp lại, chi tiết dài của giáo án (đã lưu trong hệ thống).

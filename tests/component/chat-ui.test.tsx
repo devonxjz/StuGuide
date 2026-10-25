@@ -14,7 +14,7 @@ describe("Composer", () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
     render(<Composer onSend={onSend} busy={false} />);
-    const box = screen.getByRole("textbox", { name: /Nhắn cho Mầm Học AI/ });
+    const box = screen.getByRole("textbox", { name: /Nhắn cho StuGuide/ });
     await user.type(box, "Soạn trò chơi{Shift>}{Enter}{/Shift}mới{Enter}");
     expect(onSend).toHaveBeenCalledWith("Soạn trò chơi\nmới");
     expect(box).toHaveValue("");

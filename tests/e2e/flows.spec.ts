@@ -25,7 +25,7 @@ async function enter(page: Page, role: keyof typeof ACCOUNTS) {
 test.describe.serial("Luồng 3 vai trò (acceptance #1-#7)", () => {
   test("màn hình đăng nhập: không còn lối vào demo một chạm", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByRole("heading", { name: /Chào mừng đến với Mầm Học AI/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Chào mừng đến với StuGuide/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Trải nghiệm vai/ })).toHaveCount(0);
     await shot(page, "01-login");
   });
@@ -102,7 +102,7 @@ test.describe.serial("Luồng 3 vai trò (acceptance #1-#7)", () => {
 
     // chat mới: nhờ AI ghi nhớ bằng lời → trí nhớ xuất hiện trong bảng
     await page.getByRole("button", { name: /Mới/ }).click();
-    await page.getByRole("textbox", { name: /Nhắn cho Mầm Học AI/ }).fill("Nhớ giúp mình: lớp mình chỉ có 6 rổ nhựa nhé.");
+    await page.getByRole("textbox", { name: /Nhắn cho StuGuide/ }).fill("Nhớ giúp mình: lớp mình chỉ có 6 rổ nhựa nhé.");
     await page.keyboard.press("Enter");
     await expect(page.getByText(/6 rổ nhựa/i).last()).toBeVisible({ timeout: 90_000 });
     await expect(page.getByRole("button", { name: /^Quên:.*rổ/i })).toBeVisible({ timeout: 30_000 });

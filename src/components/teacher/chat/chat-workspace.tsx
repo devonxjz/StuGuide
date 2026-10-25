@@ -150,7 +150,7 @@ export function ChatWorkspace({
                         <span className="size-1.5 rounded-full bg-lilac" />
                         <span className="size-1.5 rounded-full bg-lilac" />
                       </span>
-                      {activity?.type === "tool" ? `${TOOL_LABELS[activity.name] ?? "Đang xử lý"}…` : "Mầm Học AI đang suy nghĩ…"}
+                      {activity?.type === "tool" ? `${TOOL_LABELS[activity.name] ?? "Đang xử lý"}…` : "StuGuide đang suy nghĩ…"}
                     </div>
                   )}
                 </div>

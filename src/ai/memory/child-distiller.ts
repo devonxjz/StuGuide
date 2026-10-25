@@ -7,7 +7,7 @@ const resultSchema = z.object({
   facts: z.array(z.string()).max(5).describe("Tối đa 5 điều đáng nhớ về bé, mỗi điều một câu ngắn"),
 });
 
-const SYSTEM = `Bạn chắt lọc trí nhớ dài hạn cho trợ lý gia đình của "Mầm Học AI" từ một phiên phụ huynh dùng iPad.
+const SYSTEM = `Bạn chắt lọc trí nhớ dài hạn cho trợ lý gia đình của "StuGuide" từ một phiên phụ huynh dùng iPad.
 Chỉ rút ra những điều bền vững, hữu ích để CÁ NHÂN HÓA lần sau về BÉ: sở thích (nhân vật, đồ vật, hoạt động), thứ bé hay chơi, cách bé phản ứng tốt, thói quen, hoạt động đã làm và bé thích hay không.
 Chỉ ghi điều BỀN VỮNG dùng được cho nhiều lần sau (sở thích, nhân vật yêu thích, kiểu trò chơi bé hợp, cách bé hào hứng). KHÔNG ghi: số bước/số lần đã làm, phản ứng chung chung của riêng một buổi ("bé vui", "bé hoàn thành"), thông tin riêng tư của người lớn, địa chỉ, số điện thoại, ảnh, thông tin sức khỏe, và TUYỆT ĐỐI không ghi lời chẩn đoán hay nhãn tâm lý (tự kỷ, tăng động, chậm phát triển…) dù phụ huynh có nhắc tới: bỏ qua phần đó. Không lặp lại điều đã có trong "ĐÃ NHỚ". Viết tiếng Việt, tích cực, mô tả sở thích/hành vi.
 Nếu phiên không có gì đáng nhớ thì trả facts rỗng.`;

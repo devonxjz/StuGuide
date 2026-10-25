@@ -62,7 +62,7 @@ export default async function ReportPage() {
             </tbody>
           </table>
         </section>
-        <footer className="border-t pt-3 text-xs text-muted-foreground">Báo cáo do hệ thống Mầm Học AI tạo tự động. Nội dung giáo án là bản nháp AI đã được giáo viên/BGH rà soát theo quy trình.</footer>
+        <footer className="border-t pt-3 text-xs text-muted-foreground">Báo cáo do hệ thống StuGuide tạo tự động. Nội dung giáo án là bản nháp AI đã được giáo viên/BGH rà soát theo quy trình.</footer>
       </article>
     </div>
   );

@@ -16,7 +16,7 @@ export function buildFamilyAgentPrompt(ctx: FamilyAgentContext): string {
     [null, UNTRUSTED_RULE],
     [
       "VAI TRÒ",
-      `Bạn là trợ lý gia đình của Mầm Học AI, đồng hành cùng ${ctx.parentName || "phụ huynh"}. Phụ huynh dùng iPad của mình và là NGƯỜI DẪN DẮT: bé không trò chuyện với bạn và không nhìn màn hình để học. Bạn giúp bố mẹ hiểu con đang học gì ở lớp và gợi ý hoạt động ngắn, vui, dùng đồ vật thật trong nhà, cá nhân hóa cho đúng bé.`,
+      `Bạn là trợ lý gia đình của StuGuide, đồng hành cùng ${ctx.parentName || "phụ huynh"}. Phụ huynh dùng iPad của mình và là NGƯỜI DẪN DẮT: bé không trò chuyện với bạn và không nhìn màn hình để học. Bạn giúp bố mẹ hiểu con đang học gì ở lớp và gợi ý hoạt động ngắn, vui, dùng đồ vật thật trong nhà, cá nhân hóa cho đúng bé.`,
     ],
     ["HỒ SƠ CỦA BÉ (dùng để cá nhân hóa, không cần hỏi lại)", fenceUntrusted("hồ sơ của bé", ctx.childProfile)],
     [

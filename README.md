@@ -1,4 +1,4 @@
-# 🌱 Mầm Học AI (StuGuide) — Prototype
+# 🌱 StuGuide — Prototype
 
 Trợ lý AI cho giáo viên mầm non Việt Nam: **chat để soạn kế hoạch & trò chơi**, kiểm tra an toàn/pháp lý, ghi nhận quan sát 30 giây, gửi thẻ 5 phút cho phụ huynh và theo dõi phản hồi **realtime**.
 *AI hỗ trợ người lớn – Trẻ học qua trải nghiệm thật (Screen-Free).*
@@ -42,22 +42,7 @@ npm run dev                     # http://localhost:3000
 | 11 | Phụ huynh (iPad) | Đăng nhập → xem con học gì → **Gợi ý tối nay cho con** → tick bước, chọn phản ứng của bé, ghi chú → đóng tab → mở lại | Gợi ý dùng đúng sở thích đã nhớ của bé; trí nhớ mới chỉ xuất hiện **sau khi đóng tab** ("Mình ghi nhận") |
 | 10 | Giáo viên | Nhắn “Nhớ giúp mình: lớp có 2 bé dị ứng đậu phộng”, mở chat mới và nhờ gợi ý món ăn nhẹ | AI tự ghi nhớ dài hạn, áp dụng ở cuộc trò chuyện khác; mở lại cuộc trò chuyện cũ vẫn còn thẻ giáo án với trạng thái mới nhất |
 
-## Kiến trúc (khớp `docs/architecture.md`)
 
-```
-src/
-├── app/            PRESENTATION  App Router: trang + route handler (/api/*)
-├── components/     PRESENTATION  ui/ (primitives), shared/, teacher/ (chat, cards), parent/, principal/
-├── services/       APPLICATION   use case: lesson-planner, assessment, parent-card, feedback, report, audit, conversation
-│   └── family/     ↳ cổng phụ huynh: child-profile, learning-session, family-assistant
-│   └── chat/       ↳ chatbot agent: công cụ hành động + cầu nối stream
-├── core/           DOMAIN        schemas Zod (nguồn sự thật AI↔UI↔DB), guardrails BR-001…007, analytics, constants
-├── ai/             AI LAYER      engine, model-router, prompts (Prompt as Code), RAG, tools LangChain, memory (ngữ cảnh + tóm tắt)
-├── data/           INFRA         Prisma repositories, kho tri thức, seed
-└── server/         composition root, session, event bus (SSE), helper route
-```
-
-Quy tắc phụ thuộc một chiều: Presentation → Application → Domain ← AI; Infrastructure implement qua repository.
 
 ### Cách dùng LangChain và AI SDK
 

@@ -18,7 +18,7 @@ export interface ChildMemoryItem {
 
 const SOURCE = { parent: "Bố mẹ kể", "ai-session": "Mình ghi nhận", teacher: "Cô giáo" } as const;
 
-/** Những điều Mầm Học AI nhớ về bé để cá nhân hóa. Phụ huynh xem, thêm và xóa bất kỳ lúc nào. */
+/** Những điều StuGuide nhớ về bé để cá nhân hóa. Phụ huynh xem, thêm và xóa bất kỳ lúc nào. */
 export function ChildMemoryPanel({ studentId, childName, items, sharedWithTeacher = false }: { studentId: string; childName: string; items: ChildMemoryItem[]; sharedWithTeacher?: boolean }) {
   const router = useRouter();
   const [shared, setShared] = useState(sharedWithTeacher);
