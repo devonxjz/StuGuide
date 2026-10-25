@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Bot, ClipboardCheck, PlusCircle, RotateCcw, Sparkles, Square, Users, WifiOff } from "lucide-react";
+import Image from "next/image";
+import { Bot, ClipboardCheck, HeartHandshake, PlusCircle, RotateCcw, Sparkles, Square, Users, Wand2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
@@ -36,10 +37,10 @@ const SLOW_AFTER_MS = 20_000;
 
 const FIRST_PROMPT = "Soạn trò chơi cho lớp 4–5 tuổi, mảng tình cảm, chủ đề Bản thân & Tình bạn, có hộp sữa, rổ nhựa, bóng";
 const SUGGESTIONS = [
-  "Tra cứu căn cứ pháp lý cho lớp 4–5 tuổi mảng tình cảm xã hội",
-  "Bé nào cần quan sát sâu?",
-  "Tỷ lệ phụ huynh phản hồi bao nhiêu rồi?",
-  "Gợi ý trò chơi dân gian cho lớp",
+  "📜 Tra cứu căn cứ pháp lý cho lớp 4–5 tuổi mảng tình cảm",
+  "🔍 Bé nào trong lớp cần quan sát sâu?",
+  "💖 Tỷ lệ phụ huynh phản hồi bao nhiêu rồi?",
+  "🪀 Gợi ý trò chơi dân gian rèn khéo léo",
 ];
 
 /** Màn hình chính của giáo viên: làm việc bằng cách nhắn tin, kết quả hiện thành thẻ trong chat. */
@@ -126,7 +127,7 @@ export function ChatWorkspace({
   return (
     <ChatActionsContext.Provider value={{ send }}>
       <div className="flex h-[calc(100dvh-7.5rem)] flex-col md:h-[calc(100dvh-3.4rem)]">
-        <div className="bg-dots scroll-thin flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        <div className="bg-playful-dots bg-white scroll-thin flex-1 overflow-y-auto px-4 py-6 md:px-8">
           <div className="mx-auto max-w-3xl space-y-5">
             {messages.length === 0 ? (
               <Welcome teacherName={teacherName} className={className} onPick={send} />
@@ -204,23 +205,33 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
   return (
     <div className="space-y-8 py-6 animate-pop-in">
       <div className="text-center relative">
-        {/* Hero Motion Graphic với ánh sáng hào quang và floating animation */}
-        <div className="relative mx-auto mb-5 size-20">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-primary via-lilac to-sky blur-xl opacity-40 animate-pulse-soft" />
-          <span className="relative grid size-20 place-items-center rounded-3xl bg-gradient-to-tr from-primary via-lilac to-sky text-white shadow-float animate-float">
-            <Sparkles className="size-9 animate-pulse" aria-hidden />
+        {/* Hero Motion Graphic với ánh sáng hào quang và floating logo StuGuide */}
+        <div className="relative mx-auto mb-4 size-20">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-blue-400 via-indigo-300 to-amber-300 blur-xl opacity-60 animate-pulse-soft" />
+          <span className="relative grid size-20 place-items-center rounded-3xl bg-white p-3 shadow-float border border-blue-100 animate-float">
+            <Image
+              src="/stuguide-icon.png"
+              alt="StuGuide Mascot"
+              width={48}
+              height={48}
+              className="size-11 object-contain drop-shadow-sm"
+              priority
+            />
+            <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-amber-400 text-white text-[10px] ring-2 ring-white font-bold shadow-2xs">
+              ✨
+            </span>
           </span>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft/80 px-3 py-1 text-xs font-bold text-primary-strong mb-3 shadow-2xs">
-          <span className="size-2 rounded-full bg-primary animate-pulse" />
-          Mầm Học AI · Trợ Lý Giáo Viên Mầm Non
+        <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/90 px-3.5 py-1 text-xs font-bold text-primary mb-3 shadow-2xs">
+          <Sparkles className="size-3.5 text-sun animate-pulse" />
+          StuGuide AI · Trợ Lý Giáo Viên Mầm Non & Hoạt Động Trẻ
         </div>
 
-        <h1 className="text-balance text-2xl font-extrabold tracking-tight sm:text-3xl text-foreground">
-          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng làm gì ạ?
+        <h1 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-slate-900">
+          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng chơi gì ạ? 🎨🧸
         </h1>
-        <p className="mx-auto mt-2 max-w-lg text-balance text-sm text-muted-foreground font-medium leading-relaxed">
+        <p className="mx-auto mt-2 max-w-lg text-balance text-sm text-slate-600 font-medium leading-relaxed">
           Cô cứ nhắn tự nhiên như nói chuyện, mình sẽ soạn kế hoạch chuẩn TT 45, kiểm tra an toàn vật liệu và chuẩn bị thẻ 5 phút cho phụ huynh.
         </p>
       </div>
@@ -230,16 +241,16 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
         <button
           type="button"
           onClick={() => onPick(FIRST_PROMPT)}
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-float active:scale-[0.98]"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-[0_12px_28px_rgba(0,82,204,0.12)] active:scale-[0.98]"
         >
           <div>
-            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-primary to-lilac text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white shadow-[0_6px_16px_rgba(0,82,204,0.25)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
               <PlusCircle className="size-6" aria-hidden />
             </div>
-            <span className="block font-bold text-base text-foreground group-hover:text-primary transition-colors">
-              Tạo Kế hoạch & Trò chơi
+            <span className="block font-black text-base text-slate-900 group-hover:text-primary transition-colors flex items-center gap-1.5">
+              Tạo Kế hoạch & Trò chơi <span className="text-xs">🚀</span>
             </span>
-            <span className="mt-1.5 block text-xs text-muted-foreground leading-relaxed">
+            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed font-medium">
               Một câu yêu cầu là có ngay bản nháp trích dẫn VBHN 01, luật an toàn, lời dẫn truyện.
             </span>
           </div>
@@ -250,20 +261,20 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
 
         <Link
           href="/teacher/assess"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-sun/60 hover:shadow-float active:scale-[0.98]"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:shadow-[0_12px_28px_rgba(245,158,11,0.12)] active:scale-[0.98]"
         >
           <div>
-            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-sun to-coral text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
+            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white shadow-[0_6px_16px_rgba(245,158,11,0.25)] transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
               <ClipboardCheck className="size-6" aria-hidden />
             </div>
-            <span className="block font-bold text-base text-foreground group-hover:text-sun-strong transition-colors">
-              Ghi nhận Quan sát (30s)
+            <span className="block font-black text-base text-slate-900 group-hover:text-amber-700 transition-colors flex items-center gap-1.5">
+              Ghi nhận Quan sát (30s) <span className="text-xs">📝</span>
             </span>
-            <span className="mt-1.5 block text-xs text-muted-foreground leading-relaxed">
+            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed font-medium">
               Tích chọn cả lớp một chạm thần tốc, AI tự động phát hiện bé cần quan sát sâu.
             </span>
           </div>
-          <span className="mt-4 inline-flex items-center text-xs font-bold text-sun-strong gap-1">
+          <span className="mt-4 inline-flex items-center text-xs font-bold text-amber-700 gap-1">
             Mở checklist &rarr;
           </span>
         </Link>
@@ -271,20 +282,20 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
         <button
           type="button"
           onClick={() => onPick("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-sky/50 hover:shadow-float active:scale-[0.98]"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-rose-300 hover:shadow-[0_12px_28px_rgba(244,63,94,0.12)] active:scale-[0.98]"
         >
           <div>
-            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-sky to-primary text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+            <div className="mb-4 inline-grid size-12 place-items-center rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-[0_6px_16px_rgba(244,63,94,0.25)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
               <Users className="size-6" aria-hidden />
             </div>
-            <span className="block font-bold text-base text-foreground group-hover:text-sky-strong transition-colors">
-              Thẻ hoạt động Phụ huynh
+            <span className="block font-black text-base text-slate-900 group-hover:text-rose-700 transition-colors flex items-center gap-1.5">
+              Thẻ hoạt động Phụ huynh <span className="text-xs">💖</span>
             </span>
-            <span className="mt-1.5 block text-xs text-muted-foreground leading-relaxed">
+            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed font-medium">
               Nhiệm vụ 5 phút không màn hình buổi tối cho bé, theo dõi phản hồi realtime.
             </span>
           </div>
-          <span className="mt-4 inline-flex items-center text-xs font-bold text-sky-strong gap-1">
+          <span className="mt-4 inline-flex items-center text-xs font-bold text-rose-700 gap-1">
             Soạn thẻ &rarr;
           </span>
         </button>
@@ -294,10 +305,10 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
       <div className="flex flex-wrap justify-center gap-2 pt-2">
         {SUGGESTIONS.map((s, idx) => {
           const tones = [
-            "hover:border-primary/40 hover:text-primary",
-            "hover:border-sun/50 hover:text-sun-strong",
-            "hover:border-sky/50 hover:text-sky-strong",
-            "hover:border-lilac/50 hover:text-lilac-strong",
+            "hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50/60",
+            "hover:border-amber-400 hover:text-amber-800 hover:bg-amber-50/60",
+            "hover:border-sky-400 hover:text-sky-700 hover:bg-sky-50/60",
+            "hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/60",
           ];
           const tone = tones[idx % tones.length];
           return (
@@ -306,7 +317,7 @@ function Welcome({ teacherName, className, onPick }: { teacherName: string; clas
               type="button"
               onClick={() => onPick(s)}
               className={cn(
-                "rounded-full border border-border/70 bg-card px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs",
+                "rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs select-none",
                 tone
               )}
             >

@@ -1,20 +1,38 @@
-import { Sprout } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className, compact }: { className?: string; compact?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-2.5 group", className)}>
-      <span className="relative grid size-9.5 place-items-center rounded-xl bg-gradient-to-tr from-primary via-lilac to-sky text-white shadow-soft transition-transform duration-300 group-hover:scale-105">
-        <Sprout className="size-5 transition-transform duration-300 group-hover:rotate-6" aria-hidden />
-        <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-sun ring-2 ring-white animate-pulse-soft" />
-      </span>
-      {!compact && (
-        <span className="leading-tight">
-          <span className="block text-[15px] font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text">
-            Mầm Học AI
-          </span>
-          <span className="block text-[11px] font-semibold text-muted-foreground tracking-wide uppercase">StuGuide</span>
+    <div className={cn("flex items-center gap-3 group select-none", className)}>
+      <div className="relative shrink-0 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-2">
+        <div className="grid size-10 place-items-center rounded-2xl bg-white p-1 shadow-soft border border-blue-100 transition-all duration-300 group-hover:shadow-[0_4px_16px_rgba(0,82,204,0.18)] group-hover:border-blue-300">
+          <Image
+            src="/stuguide-icon.png"
+            alt="StuGuide Logo Icon"
+            width={36}
+            height={36}
+            className="size-7.5 object-contain transition-transform duration-300 group-hover:scale-110"
+            priority
+          />
+        </div>
+        <span className="absolute -top-1 -right-1 grid size-3.5 place-items-center rounded-full bg-sun ring-2 ring-white animate-bounce-gentle shadow-2xs">
+          <span className="size-1.5 rounded-full bg-white" />
         </span>
+      </div>
+      {!compact && (
+        <div className="leading-tight">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[18px] font-extrabold tracking-tight text-[#0052cc] group-hover:text-primary-strong transition-colors">
+              StuGuide
+            </span>
+            <span className="inline-flex items-center rounded-full bg-gradient-to-r from-sun to-coral px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-2xs">
+              MẦM NON ✨
+            </span>
+          </div>
+          <span className="block text-[11px] font-semibold text-[#0052cc]/75 tracking-tight">
+            Lakofoxygen team
+          </span>
+        </div>
       )}
     </div>
   );

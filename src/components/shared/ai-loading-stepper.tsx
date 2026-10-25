@@ -1,4 +1,4 @@
-import { Check, LoaderCircle } from "lucide-react";
+﻿import { Check, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Các bước THẬT của pipeline soạn giáo án (server đẩy về từng bước qua stream). */

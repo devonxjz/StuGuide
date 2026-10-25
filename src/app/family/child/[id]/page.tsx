@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, BookOpen, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

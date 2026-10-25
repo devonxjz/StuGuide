@@ -2,20 +2,23 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold [&_svg]:size-3 shadow-2xs", {
-  variants: {
-    tone: {
-      neutral: "bg-muted text-muted-foreground border border-border/70",
-      success: "bg-mint-soft text-mint-strong border border-mint/25",
-      warning: "bg-sun-soft text-sun-strong border border-sun/25",
-      danger: "bg-coral-soft text-coral-strong border border-coral/25",
-      info: "bg-sky-soft text-sky-strong border border-sky/25",
-      ai: "bg-lilac-soft text-lilac-strong border border-lilac/25",
-      primary: "bg-primary-soft text-primary-strong border border-primary/25",
+const badgeVariants = cva(
+  "inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-bold [&_svg]:size-3.5 shadow-2xs select-none transition-transform hover:scale-[1.03]",
+  {
+    variants: {
+      tone: {
+        neutral: "bg-slate-100 text-slate-700 border border-slate-200",
+        success: "bg-emerald-50 text-emerald-800 border border-emerald-200/90",
+        warning: "bg-amber-50 text-amber-800 border border-amber-200/90",
+        danger: "bg-rose-50 text-rose-800 border border-rose-200/90",
+        info: "bg-sky-50 text-sky-800 border border-sky-200/90",
+        ai: "bg-purple-50 text-purple-800 border border-purple-200/90",
+        primary: "bg-blue-50 text-blue-800 border border-blue-200/90",
+      },
     },
+    defaultVariants: { tone: "neutral" },
   },
-  defaultVariants: { tone: "neutral" },
-});
+);
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
 

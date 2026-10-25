@@ -18,7 +18,12 @@ import { createPlanInputSchema } from "@/core/schemas/form-inputs.schema";
 type Errors = Partial<Record<"ageGroup" | "developmentArea" | "topic" | "materials", string>>;
 
 const chip = (on: boolean) =>
-  cn("rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors", on ? "border-primary bg-primary-soft text-primary-strong" : "bg-card text-muted-foreground hover:border-primary/60");
+  cn(
+    "rounded-full border px-3.5 py-1.5 text-xs font-bold transition-all select-none cursor-pointer",
+    on
+      ? "border-blue-400 bg-blue-50 text-blue-900 shadow-2xs ring-1 ring-blue-300"
+      : "bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 border-slate-200"
+  );
 
 /** Màn hình 3 – Zero-Prompt UI: chọn nhanh, không cần học cách viết câu lệnh. */
 export function CreatePlanForm({ defaultAge }: { defaultAge: string }) {
@@ -75,7 +80,7 @@ export function CreatePlanForm({ defaultAge }: { defaultAge: string }) {
     ) : null;
 
   return (
-    <Card>
+    <Card className="border-slate-200/90 bg-white shadow-soft rounded-3xl">
       <CardContent className="space-y-6 p-6">
         <div>
           <Label htmlFor="age">1. Độ tuổi</Label>

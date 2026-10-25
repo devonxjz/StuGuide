@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
 import { ChecklistTable } from "@/components/teacher/checklist-table";

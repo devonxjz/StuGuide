@@ -1,78 +1,48 @@
 @import "tailwindcss";
 
-/* ───────────── Design tokens: Theme Trắng Tinh Tế & Hiện Đại – Đồ họa & Icon rực rỡ sắc màu ───────────── */
+/* ───────────── StuGuide Color System: Light White Canvas + Vibrant Joyful Accents ───────────── */
 :root {
-  --background: #fbfcfe;
-  --foreground: #0f172a; /* Slate 900 – chữ sắc nét, tương phản cao, không ám xanh */
+  --background: #ffffff;
+  --foreground: #0f172a; /* Slate 900 – chữ sắc nét, đậm đà, tương phản cao trên nền trắng */
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --muted: #f1f5f9; /* Slate 100 */
+  --muted: #f8fafc; /* Slate 50 */
   --muted-foreground: #64748b; /* Slate 500 */
   --border: #e2e8f0; /* Slate 200 */
-  --ring: oklch(0.55 0.22 262 / 0.35);
+  --ring: rgba(0, 82, 204, 0.35);
 
-  /* Primary: Indigo Hoàng Gia hiện đại (thay thế màu xanh lá cũ) */
-  --primary: oklch(0.54 0.22 262);
+  /* Primary: StuGuide Brand Royal Blue (chính xác theo Logo chính thức Lakofoxygen) */
+  --primary: #0052cc;
   --primary-foreground: #ffffff;
-  --primary-soft: oklch(0.965 0.035 262);
-  --primary-strong: oklch(0.42 0.24 262);
+  --primary-soft: #eff6ff; /* Blue 50 */
+  --primary-strong: #003da1;
 
-  /* Bộ màu đồ họa sinh động (cho các icon, thẻ nhiệm vụ, cảnh báo, minh họa) */
-  --sun: oklch(0.76 0.19 75); /* Vàng nắng/Cam ấm */
-  --sun-soft: oklch(0.965 0.05 85);
-  --sun-strong: oklch(0.48 0.16 65);
+  /* Bộ màu đồ họa sinh động hướng tới giáo dục trẻ thơ & mầm non: rực rỡ, ngọt ngào, ấm áp */
+  --sun: #f59e0b; /* Vàng nắng / Cam mật ong tươi sáng */
+  --sun-soft: #fef3c7; /* Amber 100 */
+  --sun-strong: #b45309; /* Amber 700 */
 
-  --coral: oklch(0.63 0.22 25); /* San hô / Đỏ hồng cảnh báo */
-  --coral-soft: oklch(0.965 0.04 25);
-  --coral-strong: oklch(0.46 0.2 25);
+  --coral: #f43f5e; /* Hồng dâu tây / San hô ngọt ngào đáng yêu */
+  --coral-soft: #ffe4e6; /* Rose 100 */
+  --coral-strong: #be123c; /* Rose 700 */
 
-  --sky: oklch(0.62 0.19 240); /* Xanh biển / Phụ huynh & cộng đồng */
-  --sky-soft: oklch(0.965 0.04 240);
-  --sky-strong: oklch(0.42 0.18 245);
+  --sky: #0284c7; /* Xanh da trời / Xanh ngọc biển trong lành */
+  --sky-soft: #e0f2fe; /* Sky 100 */
+  --sky-strong: #0369a1; /* Sky 700 */
 
-  --lilac: oklch(0.62 0.22 295); /* Tím Lavender / Phép màu AI */
-  --lilac-soft: oklch(0.965 0.04 295);
-  --lilac-strong: oklch(0.44 0.22 295);
+  --lilac: #8b5cf6; /* Tím kẹo ngọt / Phép màu AI sáng tạo */
+  --lilac-soft: #f3e8ff; /* Purple 100 */
+  --lilac-strong: #6d28d9; /* Purple 700 */
 
-  --mint: oklch(0.66 0.17 155); /* Xanh ngọc tươi nhẹ nhàng */
-  --mint-soft: oklch(0.965 0.04 155);
-  --mint-strong: oklch(0.42 0.16 155);
+  --mint: #10b981; /* Xanh lá mầm non / Bạc hà tươi mát */
+  --mint-soft: #d1fae5; /* Emerald 100 */
+  --mint-strong: #047857; /* Emerald 700 */
 
-  --shadow-soft: 0 1px 3px 0 rgb(15 23 42 / 0.04), 0 10px 25px -5px rgb(15 23 42 / 0.05), 0 0 0 1px rgb(15 23 42 / 0.04);
-  --shadow-float: 0 20px 30px -10px rgb(15 23 42 / 0.08), 0 1px 3px 0 rgb(15 23 42 / 0.05);
-  --radius: 1rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --background: #090d16;
-    --foreground: #f8fafc;
-    --card: #111827;
-    --card-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --border: #334155;
-    --ring: oklch(0.65 0.2 262 / 0.5);
-
-    --primary: oklch(0.65 0.2 262);
-    --primary-foreground: #ffffff;
-    --primary-soft: oklch(0.24 0.06 262);
-    --primary-strong: oklch(0.82 0.15 262);
-
-    --sun-soft: oklch(0.28 0.06 75);
-    --sun-strong: oklch(0.88 0.15 75);
-    --coral-soft: oklch(0.28 0.06 25);
-    --coral-strong: oklch(0.88 0.15 25);
-    --sky-soft: oklch(0.28 0.06 240);
-    --sky-strong: oklch(0.88 0.14 240);
-    --lilac-soft: oklch(0.28 0.06 295);
-    --lilac-strong: oklch(0.88 0.15 295);
-    --mint-soft: oklch(0.28 0.06 155);
-    --mint-strong: oklch(0.88 0.15 155);
-
-    --shadow-soft: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 10px 25px -5px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
-    --shadow-float: 0 20px 30px -10px rgb(0 0 0 / 0.6);
-  }
+  /* Đổ bóng mềm mại, trong trẻo, không ám khói tối */
+  --shadow-soft: 0 2px 8px -1px rgba(15, 23, 42, 0.05), 0 10px 24px -4px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  --shadow-float: 0 16px 32px -8px rgba(0, 82, 204, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-colorful: 0 10px 25px -5px rgba(0, 82, 204, 0.18);
+  --radius: 1.125rem;
 }
 
 @theme inline {
@@ -115,6 +85,8 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    background: #ffffff;
+    color: #0f172a;
   }
   body {
     background: var(--background);
@@ -138,23 +110,31 @@
   }
 }
 
-/* Nền chấm vi điểm tinh tế, sạch sẽ – không còn xanh úa */
+/* ───────────── Họa tiết nền rực rỡ & tươi sáng cho mầm non ───────────── */
+.bg-playful-dots {
+  background-image: 
+    radial-gradient(circle at 12px 12px, rgba(0, 82, 204, 0.07) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 36px 36px, rgba(245, 158, 11, 0.07) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 24px 48px, rgba(244, 63, 94, 0.06) 1.5px, transparent 1.5px);
+  background-size: 48px 48px;
+}
+
 .bg-dots {
-  background-image: radial-gradient(oklch(0.3 0.02 260 / 0.08) 1.2px, transparent 1.2px);
+  background-image: radial-gradient(rgba(0, 82, 204, 0.08) 1.2px, transparent 1.2px);
   background-size: 24px 24px;
 }
 
-/* Thanh cuộn mảnh */
+/* Thanh cuộn mảnh đẹp */
 .scroll-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
 
-/* ───────────── Motion Graphics & Animations ───────────── */
+/* ───────────── Motion Graphics & Animations Sinh Động ───────────── */
 @keyframes pop-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(10px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -167,14 +147,35 @@
 
 @keyframes float-slow {
   0%, 100% {
-    transform: translateY(0);
+    transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-8px) rotate(1.5deg);
   }
 }
 .animate-float {
-  animation: float-slow 4s ease-in-out infinite;
+  animation: float-slow 4.5s ease-in-out infinite;
+}
+
+@keyframes bounce-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.animate-bounce-gentle {
+  animation: bounce-gentle 2.5s ease-in-out infinite;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+.animate-wiggle {
+  animation: wiggle 0.7s ease-in-out infinite;
 }
 
 @keyframes pulse-soft {
@@ -183,12 +184,24 @@
     transform: scale(1);
   }
   50% {
-    opacity: 0.85;
-    transform: scale(1.03);
+    opacity: 0.88;
+    transform: scale(1.04);
   }
 }
 .animate-pulse-soft {
-  animation: pulse-soft 3s ease-in-out infinite;
+  animation: pulse-soft 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 4px 12px rgba(0, 82, 204, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 6px 20px rgba(0, 82, 204, 0.45));
+  }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
 }
 
 @keyframes shimmer {
@@ -200,7 +213,7 @@
   }
 }
 .shimmer-card {
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
   background-size: 200% 100%;
   animation: shimmer 2.5s infinite;
 }
@@ -211,7 +224,7 @@
     opacity: 0.4;
   }
   40% {
-    transform: translateY(-5px);
+    transform: translateY(-6px);
     opacity: 1;
   }
 }
@@ -228,7 +241,10 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-pop-in,
   .animate-float,
+  .animate-bounce-gentle,
+  .animate-wiggle,
   .animate-pulse-soft,
+  .animate-pulse-glow,
   .shimmer-card,
   .dot-bounce > span {
     animation: none;

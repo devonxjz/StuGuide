@@ -1,4 +1,4 @@
-import { TriangleAlert, ShieldAlert, Info } from "lucide-react";
+﻿import { TriangleAlert, ShieldAlert, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SafetyWarning } from "@/core/schemas/lesson-plan.schema";
 

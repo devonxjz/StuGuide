@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PlanEditor } from "@/components/teacher/plan-editor";
 import { isAppError } from "@/core/errors";

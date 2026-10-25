@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Eye, Gamepad2, HeartHandshake } from "lucide-react";

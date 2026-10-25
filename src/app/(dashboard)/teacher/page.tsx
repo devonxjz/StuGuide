@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { ChatWorkspace } from "@/components/teacher/chat/chat-workspace";
 import { TeacherRail } from "@/components/teacher/teacher-rail";
 import { isAppError } from "@/core/errors";

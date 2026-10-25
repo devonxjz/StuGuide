@@ -1,4 +1,4 @@
-import { AppShell } from "@/components/shared/app-shell";
+﻿import { AppShell } from "@/components/shared/app-shell";
 import { requireSession } from "@/server/session";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Home, Lightbulb, Sparkles } from "lucide-react";
@@ -33,7 +33,7 @@ export function HomeActivityCard({ data }: { data: Extract<CardData, { kind: "ho
   };
 
   return (
-    <Card className="max-w-[44rem] animate-pop-in border-primary/30">
+    <Card className="max-w-[44rem] animate-pop-in bg-white border-blue-200/80 shadow-soft">
       <CardHeader className="gap-2">
         <div className="flex flex-wrap gap-2">
           <Badge tone="ai"><Sparkles aria-hidden /> Dành riêng cho bé</Badge>

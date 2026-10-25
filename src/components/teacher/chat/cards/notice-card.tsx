@@ -1,4 +1,4 @@
-import { Info, TriangleAlert } from "lucide-react";
+﻿import { Info, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CardData } from "@/types/chat";
 

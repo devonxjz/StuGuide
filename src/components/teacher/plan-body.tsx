@@ -1,4 +1,4 @@
-import { BookOpen, Package, Play, Quote } from "lucide-react";
+﻿import { BookOpen, Package, Play, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanDTO } from "@/types/chat";
 

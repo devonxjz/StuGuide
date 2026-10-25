@@ -3,23 +3,24 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all select-none disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-bold transition-all duration-200 select-none disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground shadow-soft hover:brightness-105 hover:shadow-xs",
-        soft: "bg-primary-soft text-primary-strong hover:bg-primary-soft/80",
-        outline: "border border-border bg-card text-foreground hover:bg-muted/70 shadow-2xs",
-        ghost: "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-        sun: "bg-sun text-white shadow-soft hover:brightness-105",
-        danger: "bg-coral-soft text-coral-strong hover:bg-coral-soft/80",
-        ai: "bg-gradient-to-r from-primary via-lilac to-sky text-white shadow-soft hover:brightness-105 hover:shadow-md",
+        primary:
+          "bg-gradient-to-r from-primary to-blue-600 text-white shadow-colorful hover:brightness-105 hover:shadow-md hover:-translate-y-0.5",
+        soft: "bg-blue-50/90 text-primary-strong border border-blue-200/70 hover:bg-blue-100 shadow-2xs",
+        outline: "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 shadow-2xs hover:border-slate-300",
+        ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+        sun: "bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-soft hover:brightness-105 hover:shadow-md hover:-translate-y-0.5",
+        danger: "bg-rose-50 text-rose-700 border border-rose-200/70 hover:bg-rose-100",
+        ai: "bg-gradient-to-r from-primary via-purple-600 to-pink-500 text-white shadow-colorful hover:brightness-105 hover:shadow-lg hover:-translate-y-0.5",
       },
       size: {
-        sm: "h-8 px-3",
-        md: "h-10 px-4",
+        sm: "h-8.5 px-3.5 text-xs",
+        md: "h-10.5 px-4.5",
         lg: "h-12 px-6 text-base",
-        icon: "size-9",
+        icon: "size-9.5 rounded-xl",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

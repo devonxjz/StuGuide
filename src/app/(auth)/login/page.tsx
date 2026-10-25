@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { LoginPanel } from "@/components/shared/login-panel";
 
 export const metadata: Metadata = { title: "Đăng nhập" };

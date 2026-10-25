@@ -1,4 +1,4 @@
-import { Scale, BadgeCheck, TriangleAlert } from "lucide-react";
+﻿import { Scale, BadgeCheck, TriangleAlert } from "lucide-react";
 import type { LegalReference } from "@/core/schemas/lesson-plan.schema";
 
 /** Hộp căn cứ pháp lý (nền xanh nhạt). Trích dẫn không đối chiếu được sẽ bị hạ cờ isVerified (BR-003). */

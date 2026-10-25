@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ChevronDown, Eye, Gamepad2, Save, Zap } from "lucide-react";

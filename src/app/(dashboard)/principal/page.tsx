@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { FileBarChart } from "lucide-react";
 import { ApprovalQueue } from "@/components/principal/approval-queue";
 import { AuditLogTable } from "@/components/principal/audit-log-table";

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+﻿import { cn } from "@/lib/utils";
 
 /** Vòng tròn % (tỷ lệ hoàn thành của phụ huynh). */
 export function ProgressRing({ value, size = 112, label, className }: { value: number; size?: number; label?: string; className?: string }) {

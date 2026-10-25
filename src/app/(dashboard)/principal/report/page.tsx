@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { PrintButton } from "@/components/teacher/print-button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatDateTime } from "@/lib/utils";

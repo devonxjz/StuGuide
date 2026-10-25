@@ -1,4 +1,4 @@
-import { ShieldX } from "lucide-react";
+﻿import { ShieldX } from "lucide-react";
 
 /** ERR-AUTH-01: phụ huynh cố xem hồ sơ trẻ khác. Sự kiện đã được ghi vào AuditLog. */
 export function AccessDenied({ message }: { message: string }) {

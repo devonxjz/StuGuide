@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+﻿import { cn } from "@/lib/utils";
 
 /** Khung điện thoại cho giao diện phụ huynh: trên desktop hiện như máy thật, trên mobile chiếm toàn màn hình. */
 export function MobileFrame({ children, className }: { children: React.ReactNode; className?: string }) {

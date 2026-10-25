@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { MobileFrame } from "@/components/shared/mobile-frame";
 import { AccessDenied } from "@/components/parent/access-denied";
 import { ParentExperience, type ParentView } from "@/components/parent/parent-experience";

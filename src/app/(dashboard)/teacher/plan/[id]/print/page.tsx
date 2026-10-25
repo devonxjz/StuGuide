@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PrintButton } from "@/components/teacher/print-button";
 import { isAppError } from "@/core/errors";

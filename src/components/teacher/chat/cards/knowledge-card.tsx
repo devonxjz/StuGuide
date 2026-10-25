@@ -1,4 +1,4 @@
-import { BookOpenCheck } from "lucide-react";
+﻿import { BookOpenCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { CardData } from "@/types/chat";

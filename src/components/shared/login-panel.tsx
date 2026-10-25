@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LoaderCircle, Mail, Phone } from "lucide-react";
+import { GraduationCap, HeartHandshake, KeyRound, LoaderCircle, Mail, Phone, Sparkles } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,11 +43,19 @@ export function LoginPanel() {
     <div className="space-y-6 animate-pop-in">
       <div className="text-center">
         <Logo className="mx-auto w-fit" />
-        <h1 className="mt-5 text-balance text-3xl font-extrabold tracking-tight">Chào mừng đến với Mầm Học AI</h1>
-        <p className="mt-2 text-balance text-muted-foreground font-medium">AI hỗ trợ người lớn – Trẻ học qua trải nghiệm thật</p>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/90 px-3.5 py-1 text-xs font-bold text-primary shadow-2xs">
+          <Sparkles className="size-3.5 text-sun animate-pulse" />
+          StuGuide · Đồng Hành Cùng Trẻ Khôn Lớn
+        </div>
+        <h1 className="mt-3 text-balance text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+          Chào mừng đến với StuGuide
+        </h1>
+        <p className="mt-2 text-balance text-slate-600 font-medium text-sm sm:text-base">
+          AI hỗ trợ giáo viên & phụ huynh – Trẻ học qua trải nghiệm thật (Screen-Free)
+        </p>
       </div>
 
-      <Card className="border-border/80 bg-card shadow-float backdrop-blur">
+      <Card className="border-border/80 bg-white shadow-float backdrop-blur rounded-3xl">
         <CardContent className="space-y-4 p-6 sm:p-7">
           <Tabs<Mode>
             className="w-full"
@@ -59,8 +67,8 @@ export function LoginPanel() {
               setError(null);
             }}
             items={[
-              { value: "staff", label: "Giáo viên & BGH" },
-              { value: "parent", label: "Phụ huynh" },
+              { value: "staff", label: "👩‍🏫 Giáo viên & BGH" },
+              { value: "parent", label: "👨‍👩‍👧 Phụ huynh" },
             ]}
           />
 
@@ -73,7 +81,7 @@ export function LoginPanel() {
             }}
           >
             <div>
-              <Label htmlFor="username" className="text-xs font-semibold text-foreground">
+              <Label htmlFor="username" className="text-xs font-semibold text-slate-800">
                 {mode === "staff" ? "Email tài khoản" : "Số điện thoại phụ huynh"}
               </Label>
               <div className="relative mt-1">
@@ -91,15 +99,15 @@ export function LoginPanel() {
                   onChange={(e) => setUsername(e.target.value)}
                   maxLength={254}
                   required
-                  className="pl-9 bg-muted/40 focus:bg-card"
+                  className="pl-9 bg-slate-50/70 focus:bg-white border-slate-200"
                   autoComplete="username"
                 />
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-semibold text-foreground">Mật khẩu</Label>
-                <span className="text-[11px] text-muted-foreground">Mặc định: <strong className="text-foreground">stuguide</strong></span>
+                <Label htmlFor="password" className="text-xs font-semibold text-slate-800">Mật khẩu</Label>
+                <span className="text-[11px] text-muted-foreground">Mặc định: <strong className="text-slate-800">stuguide</strong></span>
               </div>
               <div className="relative mt-1">
                 <KeyRound className="absolute top-3 left-3 size-4 text-sun" aria-hidden />
@@ -108,43 +116,50 @@ export function LoginPanel() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 bg-muted/40 focus:bg-card"
+                  className="pl-9 bg-slate-50/70 focus:bg-white border-slate-200"
                   autoComplete="current-password"
                   maxLength={128}
                   required
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full font-bold shadow-soft transition-all hover:shadow-md" size="lg" disabled={busy !== null}>
-              {busy === "login" && <LoaderCircle className="animate-spin" />} Đăng nhập
+            <Button
+              type="submit"
+              className="w-full font-bold shadow-colorful transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] bg-gradient-to-r from-primary via-blue-600 to-indigo-600 text-white"
+              size="lg"
+              disabled={busy !== null}
+            >
+              {busy === "login" && <LoaderCircle className="animate-spin" />} Đăng nhập vào StuGuide
             </Button>
           </form>
 
           {/* Khối gợi ý tài khoản demo với các huy hiệu màu sắc sinh động */}
-          <div className="pt-2 border-t text-xs">
-            <p className="font-semibold text-muted-foreground mb-2">Tài khoản thử nghiệm nhanh (bấm để điền):</p>
+          <div className="pt-2 border-t border-slate-100 text-xs">
+            <p className="font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+              <span>🎯</span> Chọn nhanh tài khoản mẫu để trải nghiệm:
+            </p>
             {mode === "staff" ? (
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => quickFill("lan@hoamai.edu.vn")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary-soft/80 px-2.5 py-1.5 text-xs font-semibold text-primary-strong transition-all hover:scale-105"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-all hover:scale-105 hover:bg-blue-100"
                 >
-                  <span className="size-2 rounded-full bg-primary" /> Cô Lan (B1)
+                  <span>🌸</span> Cô Lan (Lớp Chồi B1)
                 </button>
                 <button
                   type="button"
                   onClick={() => quickFill("thu@hoamai.edu.vn")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-lilac/20 bg-lilac-soft/80 px-2.5 py-1.5 text-xs font-semibold text-lilac-strong transition-all hover:scale-105"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50/80 px-2.5 py-1.5 text-xs font-semibold text-purple-700 transition-all hover:scale-105 hover:bg-purple-100"
                 >
-                  <span className="size-2 rounded-full bg-lilac" /> Cô Thu (A2)
+                  <span>🌼</span> Cô Thu (Lớp Mầm A2)
                 </button>
                 <button
                   type="button"
                   onClick={() => quickFill("minh@hoamai.edu.vn")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-sun/30 bg-sun-soft/80 px-2.5 py-1.5 text-xs font-semibold text-sun-strong transition-all hover:scale-105"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-all hover:scale-105 hover:bg-amber-100"
                 >
-                  <span className="size-2 rounded-full bg-sun" /> BGH Thầy Minh
+                  <span>🏛️</span> BGH Thầy Minh
                 </button>
               </div>
             ) : (
@@ -152,16 +167,16 @@ export function LoginPanel() {
                 <button
                   type="button"
                   onClick={() => quickFill("0900000001")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-sky/30 bg-sky-soft/80 px-2.5 py-1.5 text-xs font-semibold text-sky-strong transition-all hover:scale-105"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/80 px-2.5 py-1.5 text-xs font-semibold text-sky-700 transition-all hover:scale-105 hover:bg-sky-100"
                 >
-                  <span className="size-2 rounded-full bg-sky" /> Mẹ Gia Huy (0900000001)
+                  <span>🧸</span> Mẹ Gia Huy (0900000001)
                 </button>
                 <button
                   type="button"
                   onClick={() => quickFill("0900000002")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-mint/30 bg-mint-soft/80 px-2.5 py-1.5 text-xs font-semibold text-mint-strong transition-all hover:scale-105"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/80 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition-all hover:scale-105 hover:bg-emerald-100"
                 >
-                  <span className="size-2 rounded-full bg-mint" /> Bố Minh Anh (0900000002)
+                  <span>🚀</span> Bố Minh Anh (0900000002)
                 </button>
               </div>
             )}
