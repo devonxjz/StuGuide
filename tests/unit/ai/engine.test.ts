@@ -77,6 +77,42 @@ describe("LangChain engine (structured output + vòng tiêu chí; model là test
     await expect(engine.generateLessonPlan(input, context)).rejects.toThrow();
   });
 
+  it("structured output lần 1 sai schema → sửa lại 1 lần bằng lỗi Zod rồi thành công (P1-02)", async () => {
+    const prompts: string[] = [];
+    const model = fakeModel().structuredResponse(sampleLessonPlan);
+    const getModel = () => {
+      let calls = 0;
+      return Object.assign(Object.create(model), {
+        withStructuredOutput: () => ({
+          invoke: async (p: string) => {
+            prompts.push(p);
+            calls += 1;
+            return calls === 1 ? { gameName: "thiếu hết các trường khác" } : sampleLessonPlan;
+          },
+        }),
+      });
+    };
+    const engine = createLangChainEngine({ getModel, retriever, judge: passJudge });
+    const { value, review } = await engine.generateLessonPlan(input, context);
+    expect(value.gameName).toBe(sampleLessonPlan.gameName);
+    expect(review.passed).toBe(true);
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("SAI ĐỊNH DẠNG");
+  });
+
+  it("hoạt động ở nhà: bộ chấm lỗi → fail-closed, passed=false dù nội dung đạt (P1-01)", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const activity = { title: "Đếm hộp sữa", minutes: 5, whyForThisChild: "Bé thích đếm", materials: ["Vỏ hộp sữa tái chế"], steps: ["Cùng con đếm vỏ hộp"], eqQuestion: "Con thích gì?", parentTip: "Bố mẹ giám sát sát sao" };
+    const model = fakeModel().structuredResponse(activity);
+    const failingJudge: Judge = async () => Promise.reject(new Error("timeout"));
+    const engine = createLangChainEngine({ getModel: () => model, retriever, judge: failingJudge });
+    const { review } = await engine.generateHomeActivity({ profile: "Bé thích đếm", minutes: 5, ageGroup: "4-5y" });
+    expect(review.passed).toBe(false);
+    expect(review.judged).toBe(false);
+    expect(review.findings.map((f) => f.criterionId)).toContain("judge-unavailable");
+    spy.mockRestore();
+  });
+
   it("checklist: structured output + chấm theo tiêu chí", async () => {
     const model = fakeModel().structuredResponse({ criteria: ["a", "b", "c"] });
     const engine = createLangChainEngine({ getModel: () => model, retriever, judge: passJudge });

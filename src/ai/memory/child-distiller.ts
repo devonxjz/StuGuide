@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { DistillArgs } from "@/services/family/learning-session.service";
+import { parseWithRepair } from "../structured-repair";
 
 const resultSchema = z.object({
   summary: z.string().describe("Tóm tắt 1–2 câu về phiên dùng này"),
@@ -21,6 +22,12 @@ export function createChildDistiller(getModel: () => BaseChatModel) {
     const reactions = args.events.filter((e) => e.type === "reaction").map((e) => String((e.data as { emoji?: unknown } | undefined)?.emoji ?? "")).join("");
     const prompt = `${SYSTEM}\n\nBÉ: ${args.studentName} (${args.ageLabel})\nĐÃ NHỚ:\n${args.existingMemories.map((m) => `- ${m}`).join("\n") || "(chưa có)"}\n\nHỘI THOẠI:\n${transcript || "(không có)"}\n\nGHI CHÚ CỦA PHỤ HUYNH:\n${notes.join("\n") || "(không có)"}\nSố bước hoạt động đã đánh dấu hoàn thành: ${steps}. Phản ứng của bé: ${reactions || "(không có)"}`;
     const model = getModel().withStructuredOutput(resultSchema as never, { name: "child_memory", method: "functionCalling" });
-    return resultSchema.parse(await model.invoke(prompt));
+    return parseWithRepair({
+      schema: resultSchema,
+      invoke: (p) => model.invoke(p),
+      prompt,
+      label: "child_memory",
+      friendlyMessage: "AI chắt lọc chưa đúng định dạng, bấm thử lại",
+    });
   };
 }
