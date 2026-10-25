@@ -4,7 +4,8 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 function resolveDatabaseUrl(): string {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  // Nếu DATABASE_URL là file sqlite thì dùng; nếu Vercel tự gắn url postgres trong khi dự án đang chạy SQLite adapter thì bỏ qua
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("file:")) return process.env.DATABASE_URL;
   if (process.env.VERCEL) {
     const tmpDb = "/tmp/dev.db";
     if (!fs.existsSync(tmpDb)) {
@@ -15,7 +16,7 @@ function resolveDatabaseUrl(): string {
     }
     return `file:${tmpDb}`;
   }
-  return "file:./dev.db";
+  return process.env.DATABASE_URL ?? "file:./dev.db";
 }
 
 export function createPrismaClient(url: string = resolveDatabaseUrl()) {
