@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardRenderer } from "@/components/teacher/chat/cards/card-renderer";
 import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
-import { useDeviceQuota } from "@/hooks/use-device-quota";
-import { api, ApiError } from "@/lib/api-client";
+import { useDeviceQuota, broadcastDeviceQuota } from "@/hooks/use-device-quota";
+import { api, ApiError, getClientDeviceId } from "@/lib/api-client";
 import { messagesToTurns } from "@/lib/message-text";
 import { cn } from "@/lib/utils";
 import type { HomeActivity } from "@/core/schemas/family.schema";
@@ -36,10 +36,21 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
       new DefaultChatTransport<StuGuideMessage>({
         api: "/api/family/chat",
         fetch: async (input, init) => {
-          const res = await fetch(input, init);
+          const deviceId = getClientDeviceId();
+          const headers = new Headers(init?.headers);
+          if (deviceId && !headers.has("x-device-id")) headers.set("x-device-id", deviceId);
+          const res = await fetch(input, { ...init, headers });
           if (res.status === 429) {
             const data = await res.clone().json().catch(() => ({}));
             const msg = data?.error?.message ?? "Quá hạn sử dụng, bạn phải mua thêm lượt";
+            try {
+              localStorage.setItem("sg_device_blocked", "true");
+              localStorage.setItem(
+                "sg_device_quota",
+                JSON.stringify({ limit: 5, used: 5, remaining: 0, isExceeded: true, message: msg }),
+              );
+            } catch {}
+            broadcastDeviceQuota({ limit: 5, used: 5, remaining: 0, isExceeded: true, message: msg });
             throw new Error(msg);
           }
           return res;

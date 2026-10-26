@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 /**
  * Giới hạn tần suất theo cửa sổ trượt (sliding window log), lưu trong RAM của tiến trình (prototype một máy chủ).
  * Production nhiều instance: thay store bằng Redis, giữ nguyên interface `RateLimiter`.
@@ -76,6 +78,49 @@ export function createRateLimiter(): RateLimiter {
 
 /** Giới hạn tối đa số lượt tương tác AI cho mỗi thiết bị */
 export const DEVICE_AI_LIMIT = Number(process.env.DEVICE_AI_LIMIT) || 5;
+export const DEVICE_COOKIE = "sg_device_id";
+export const DEVICE_QUOTA_COOKIE = "sg_device_quota";
+
+const DEVICE_SECRET = process.env.SESSION_SECRET || "stuguide-device-quota-secret-key-at-least-32-chars";
+
+export interface DeviceQuotaTokenPayload {
+  deviceId: string;
+  used: number;
+  isExceeded: boolean;
+}
+
+export function signDeviceQuota(deviceId: string, used: number, isExceeded: boolean): string {
+  const data = `${deviceId}:${used}:${isExceeded ? 1 : 0}`;
+  const sig = createHmac("sha256", DEVICE_SECRET).update(data).digest("base64url");
+  const payload = Buffer.from(data).toString("base64url");
+  return `${payload}.${sig}`;
+}
+
+export function parseDeviceQuota(token: string | undefined | null): DeviceQuotaTokenPayload | null {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [b64Data, sig] = parts;
+  try {
+    const data = Buffer.from(b64Data, "base64url").toString("utf8");
+    const expectedSig = createHmac("sha256", DEVICE_SECRET).update(data).digest("base64url");
+    const sigBuf = Buffer.from(sig);
+    const expBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) return null;
+
+    const [deviceId, usedStr, isExceededStr] = data.split(":");
+    const used = Number.parseInt(usedStr, 10);
+    if (!deviceId || Number.isNaN(used)) return null;
+
+    return {
+      deviceId,
+      used,
+      isExceeded: isExceededStr === "1" || used >= DEVICE_AI_LIMIT,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export interface DeviceQuotaResult {
   ok: boolean;
@@ -86,8 +131,9 @@ export interface DeviceQuotaResult {
 }
 
 export interface DeviceQuotaLimiter {
-  getQuota(deviceId: string): DeviceQuotaResult;
-  consume(deviceId: string): DeviceQuotaResult;
+  getQuota(deviceId: string, baseUsed?: number): DeviceQuotaResult;
+  consume(deviceId: string, baseUsed?: number): DeviceQuotaResult;
+  sync(deviceId: string, used: number): void;
   reset(deviceId?: string): void;
 }
 
@@ -95,8 +141,10 @@ export function createDeviceQuotaLimiter(limit = DEVICE_AI_LIMIT): DeviceQuotaLi
   const store = new Map<string, number>();
 
   return {
-    getQuota(deviceId: string): DeviceQuotaResult {
-      const used = store.get(deviceId) ?? 0;
+    getQuota(deviceId: string, baseUsed = 0): DeviceQuotaResult {
+      const stored = store.get(deviceId) ?? 0;
+      const used = Math.max(stored, baseUsed);
+      if (used > stored) store.set(deviceId, used);
       const isExceeded = used >= limit;
       return {
         ok: !isExceeded,
@@ -106,18 +154,20 @@ export function createDeviceQuotaLimiter(limit = DEVICE_AI_LIMIT): DeviceQuotaLi
         isExceeded,
       };
     },
-    consume(deviceId: string): DeviceQuotaResult {
-      const used = store.get(deviceId) ?? 0;
-      if (used >= limit) {
+    consume(deviceId: string, baseUsed = 0): DeviceQuotaResult {
+      const stored = store.get(deviceId) ?? 0;
+      const current = Math.max(stored, baseUsed);
+      if (current >= limit) {
+        store.set(deviceId, limit);
         return {
           ok: false,
           limit,
-          used,
+          used: limit,
           remaining: 0,
           isExceeded: true,
         };
       }
-      const nextUsed = used + 1;
+      const nextUsed = current + 1;
       store.set(deviceId, nextUsed);
       return {
         ok: true,
@@ -126,6 +176,10 @@ export function createDeviceQuotaLimiter(limit = DEVICE_AI_LIMIT): DeviceQuotaLi
         remaining: Math.max(0, limit - nextUsed),
         isExceeded: nextUsed >= limit,
       };
+    },
+    sync(deviceId: string, used: number) {
+      const stored = store.get(deviceId) ?? 0;
+      store.set(deviceId, Math.max(stored, used));
     },
     reset(deviceId?: string) {
       if (deviceId) store.delete(deviceId);

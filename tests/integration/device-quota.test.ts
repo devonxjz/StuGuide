@@ -7,7 +7,7 @@ import { POST as chat } from "@/app/api/chat/route";
 import { POST as familyActivity } from "@/app/api/family/activity/route";
 import { POST as createPlan } from "@/app/api/plans/route";
 import { GET as listConversations } from "@/app/api/conversations/route";
-import { getDeviceQuotaLimiter, getRateLimiter } from "@/server/security/rate-limit";
+import { getDeviceQuotaLimiter, getRateLimiter, signDeviceQuota } from "@/server/security/rate-limit";
 import { AIMessage } from "@langchain/core/messages";
 import { fakeModel } from "@langchain/core/testing";
 
@@ -38,7 +38,7 @@ beforeEach(() => {
 
 const req = (
   url: string,
-  init: { method?: string; body?: unknown; user?: string; deviceId?: string; deviceCookie?: string } = {},
+  init: { method?: string; body?: unknown; user?: string; deviceId?: string; deviceCookie?: string; quotaCookie?: string } = {},
 ) => {
   const cookies: string[] = [];
   if (init.user) {
@@ -47,6 +47,9 @@ const req = (
   }
   if (init.deviceCookie) {
     cookies.push(`sg_device_id=${init.deviceCookie}`);
+  }
+  if (init.quotaCookie) {
+    cookies.push(`sg_device_quota=${init.quotaCookie}`);
   }
   const headers: Record<string, string> = {
     "content-type": "application/json",
@@ -65,6 +68,16 @@ const req = (
 };
 
 const ctx = <P,>(params: P) => ({ params: Promise.resolve(params) });
+
+const getSetCookie = (res: Response, name: string): string | undefined => {
+  if ("cookies" in res && (res as { cookies?: { get(n: string): { value: string } | undefined } }).cookies) {
+    const c = (res as { cookies: { get(n: string): { value: string } | undefined } }).cookies.get(name);
+    if (c) return c.value;
+  }
+  const raw = res.headers.get("set-cookie") || "";
+  const match = new RegExp(`(?:^|,|;)\\s*${name}=([^;]+)`).exec(raw);
+  return match?.[1];
+};
 
 describe("Device AI Quota & Rate Limit (Tối đa 5 lượt/thiết bị)", () => {
   it("GET /api/device/quota trả về trạng thái quota ban đầu của thiết bị", async () => {
@@ -401,5 +414,94 @@ describe("Device AI Quota & Rate Limit (Tối đa 5 lượt/thiết bị)", () =
     expect(unblocked.status).toBe(200);
     expect(unblocked.headers.get("X-Device-AI-Used")).toBe("1");
     expect(unblocked.headers.get("X-Device-AI-Remaining")).toBe("4");
+  });
+
+  it("duy trì trạng thái quota khi reload (không bị reset về 5 lượt khi gọi lại GET /api/device/quota)", async () => {
+    const deviceId = "device-test-reload-persistence";
+    getDeviceQuotaLimiter().reset(deviceId);
+
+    // Giả lập thiết bị đã dùng 3 lượt, mang theo signed cookie sg_device_quota
+    const quotaToken = signDeviceQuota(deviceId, 3, false);
+
+    // Khi người dùng reload trang (gọi GET /api/device/quota với cookie), server đọc đúng 3 lượt và còn 2
+    const res = await getQuota(req("/api/device/quota", { deviceId, quotaCookie: quotaToken }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.deviceId).toBe(deviceId);
+    expect(data.used).toBe(3);
+    expect(data.remaining).toBe(2);
+    expect(data.isExceeded).toBe(false);
+
+    // Response cấp lại cookie đã ký có cùng trạng thái
+    expect(res.cookies.get("sg_device_quota")).toBeDefined();
+  });
+
+  it("khóa thiết bị khi dùng đủ 5 lượt, reload vẫn tiếp tục bị khóa (isExceeded: true)", async () => {
+    const deviceId = "device-test-permanent-block";
+    getDeviceQuotaLimiter().reset(deviceId);
+
+    // Gửi 5 lượt chat để dùng hết hạn mức
+    let lastCookie: string | undefined;
+    for (let i = 1; i <= 5; i++) {
+      const res = await chat(
+        req("/api/chat", {
+          method: "POST",
+          user: ids.teacherId,
+          deviceId,
+          quotaCookie: lastCookie,
+          body: {
+            id: `conv-block-persist-${i}`,
+            message: { id: `m-blk-${i}`, role: "user", parts: [{ type: "text", text: `Lần ${i}` }] },
+          },
+        }),
+        ctx({}),
+      );
+      expect(res.status).toBe(200);
+      lastCookie = getSetCookie(res, "sg_device_quota");
+    }
+
+    // Lượt thứ 6 bị chặn 429
+    const blocked = await chat(
+      req("/api/chat", {
+        method: "POST",
+        user: ids.teacherId,
+        deviceId,
+        quotaCookie: lastCookie,
+        body: {
+          id: "conv-block-persist-6",
+          message: { id: "m-blk-6", role: "user", parts: [{ type: "text", text: "Lần 6" }] },
+        },
+      }),
+      ctx({}),
+    );
+    expect(blocked.status).toBe(429);
+    const blockedCookie = getSetCookie(blocked, "sg_device_quota") || lastCookie;
+
+    // Giờ người dùng F5 / reload lại toàn bộ trang (gọi GET /api/device/quota)
+    const reloadRes = await getQuota(req("/api/device/quota", { deviceId, quotaCookie: blockedCookie }));
+    expect(reloadRes.status).toBe(200);
+    const reloadData = await reloadRes.json();
+    expect(reloadData.used).toBe(5);
+    expect(reloadData.remaining).toBe(0);
+    expect(reloadData.isExceeded).toBe(true);
+    expect(reloadData.message).toBe("Quá hạn sử dụng, bạn phải mua thêm lượt");
+
+    // Và tiếp tục gửi request AI khác cũng bị chặn 429
+    const retryAfterReload = await chat(
+      req("/api/chat", {
+        method: "POST",
+        user: ids.teacherId,
+        deviceId,
+        quotaCookie: blockedCookie,
+        body: {
+          id: "conv-block-persist-7",
+          message: { id: "m-blk-7", role: "user", parts: [{ type: "text", text: "Thử lại sau reload" }] },
+        },
+      }),
+      ctx({}),
+    );
+    expect(retryAfterReload.status).toBe(429);
+    const err = await retryAfterReload.json();
+    expect(err.error.code).toBe("ERR-QUOTA-EXCEEDED");
   });
 });

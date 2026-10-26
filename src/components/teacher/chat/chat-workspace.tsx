@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
 import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
-import { useDeviceQuota } from "@/hooks/use-device-quota";
+import { useDeviceQuota, broadcastDeviceQuota } from "@/hooks/use-device-quota";
+import { getClientDeviceId } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import type { StatusData, StuGuideMessage } from "@/types/chat";
 import { ChatActionsContext } from "./chat-context";
@@ -72,10 +73,21 @@ export function ChatWorkspace({
       new DefaultChatTransport<StuGuideMessage>({
         api: "/api/chat",
         fetch: async (input, init) => {
-          const res = await fetch(input, init);
+          const deviceId = getClientDeviceId();
+          const headers = new Headers(init?.headers);
+          if (deviceId && !headers.has("x-device-id")) headers.set("x-device-id", deviceId);
+          const res = await fetch(input, { ...init, headers });
           if (res.status === 429) {
             const data = await res.clone().json().catch(() => ({}));
             const msg = data?.error?.message ?? "Quá hạn sử dụng, bạn phải mua thêm lượt";
+            try {
+              localStorage.setItem("sg_device_blocked", "true");
+              localStorage.setItem(
+                "sg_device_quota",
+                JSON.stringify({ limit: 5, used: 5, remaining: 0, isExceeded: true, message: msg }),
+              );
+            } catch {}
+            broadcastDeviceQuota({ limit: 5, used: 5, remaining: 0, isExceeded: true, message: msg });
             throw new Error(msg);
           }
           return res;
