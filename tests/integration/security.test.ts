@@ -203,7 +203,10 @@ describe("Kiểm tra đầu vào ở route (lớp 2)", () => {
 
 describe("Giới hạn tần suất tác vụ AI", () => {
   it("mỗi tài khoản tối đa 20 yêu cầu AI/phút, sau đó 429 có Retry-After", async () => {
-    const call = () => familyActivity(req("/api/family/activity", { method: "POST", user: "demo-parent-2", body: { studentId: t.ids.otherStudentId } }), ctx({}));
+    // mỗi lượt một IP khác nhau để chỉ đo giới hạn theo tài khoản (trần quota theo IP có test riêng ở device-quota.test.ts)
+    let n = 0;
+    const call = () =>
+      familyActivity(req("/api/family/activity", { method: "POST", user: "demo-parent-2", body: { studentId: t.ids.otherStudentId }, headers: { "x-forwarded-for": `192.0.2.${++n}` } }), ctx({}));
     const codes: number[] = [];
     for (let i = 0; i < 21; i++) codes.push((await call()).status);
     expect(codes.slice(0, 20).every((c) => c !== 429)).toBe(true);
@@ -221,12 +224,13 @@ describe("Cổng phê duyệt: còn vi phạm luật bắt buộc thì không du
       actor,
     );
     await t.container.services.lessonPlanner.editSection(plan.id, "safetyWarnings", [{ level: "info", material: "Sân chơi", description: "Dọn gọn", ruleRef: "" }], actor);
-    const blocked = await approve(req(`/api/plans/${plan.id}/approve`, { method: "POST", user: t.ids.teacherId, body: {} }), ctx({ id: plan.id }));
+    const ip = { "x-forwarded-for": "192.0.2.200" };
+    const blocked = await approve(req(`/api/plans/${plan.id}/approve`, { method: "POST", user: t.ids.teacherId, body: {}, headers: ip }), ctx({ id: plan.id }));
     expect(blocked.status).toBe(409);
     expect((await blocked.json()).error.message).toMatch(/Vỏ hộp sữa tái chế/);
 
     await t.container.services.lessonPlanner.editSection(plan.id, "safetyWarnings", [{ level: "warning", material: "Vỏ hộp sữa", description: "Kiểm tra mép sắc", ruleRef: "45/2021/TT-BGDĐT" }], actor);
-    expect(await status(approve(req(`/api/plans/${plan.id}/approve`, { method: "POST", user: t.ids.teacherId, body: {} }), ctx({ id: plan.id })))).toBe(200);
+    expect(await status(approve(req(`/api/plans/${plan.id}/approve`, { method: "POST", user: t.ids.teacherId, body: {}, headers: ip }), ctx({ id: plan.id })))).toBe(200);
   });
 });
 

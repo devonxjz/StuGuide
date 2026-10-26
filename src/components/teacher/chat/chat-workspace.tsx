@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
 import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
-import { useDeviceQuota, broadcastDeviceQuota } from "@/hooks/use-device-quota";
-import { getClientDeviceId } from "@/lib/api-client";
+import { useDeviceQuota } from "@/hooks/use-device-quota";
+import { quotaAwareFetch } from "@/lib/device-quota";
+import { userMessage } from "@/lib/api-error";
 import { cn } from "@/lib/utils";
 import type { StatusData, StuGuideMessage } from "@/types/chat";
 import { ChatActionsContext } from "./chat-context";
@@ -72,26 +73,7 @@ export function ChatWorkspace({
     () =>
       new DefaultChatTransport<StuGuideMessage>({
         api: "/api/chat",
-        fetch: async (input, init) => {
-          const deviceId = getClientDeviceId();
-          const headers = new Headers(init?.headers);
-          if (deviceId && !headers.has("x-device-id")) headers.set("x-device-id", deviceId);
-          const res = await fetch(input, { ...init, headers });
-          if (res.status === 429) {
-            const data = await res.clone().json().catch(() => ({}));
-            const msg = data?.error?.message ?? "Quá hạn sử dụng, bạn phải mua thêm lượt";
-            try {
-              localStorage.setItem("sg_device_blocked", "true");
-              localStorage.setItem(
-                "sg_device_quota",
-                JSON.stringify({ limit: 5, used: 5, remaining: 0, isExceeded: true, message: msg }),
-              );
-            } catch {}
-            broadcastDeviceQuota({ limit: 5, used: 5, remaining: 0, isExceeded: true, message: msg });
-            throw new Error(msg);
-          }
-          return res;
-        },
+        fetch: quotaAwareFetch,
         // Server giữ lịch sử, trí nhớ và giáo án đang làm việc: client chỉ gửi tin mới nhất của cô
         prepareSendMessagesRequest: ({ id, messages }) => ({ body: { id, message: messages[messages.length - 1] } }),
       }),
@@ -115,12 +97,8 @@ export function ChatWorkspace({
     },
     onError: (err) => {
       void refreshQuota();
-      const msg = err?.message || "";
-      if (msg.includes("Quá hạn") || msg.includes("ERR-QUOTA-EXCEEDED")) {
-        setBusyNotice("Quá hạn sử dụng, bạn phải mua thêm lượt");
-      } else {
-        setBusyNotice("Hệ thống AI phản hồi hơi lâu hoặc đang bận. Cô có thể chờ thêm hoặc gửi lại giúp mình nhé.");
-      }
+      // hết lượt, bấm quá nhanh… hiện đúng lời server; lỗi hệ thống/mạng hiện câu chung
+      setBusyNotice(userMessage(err, "Hệ thống AI phản hồi hơi lâu hoặc đang bận. Cô có thể chờ thêm hoặc gửi lại giúp mình nhé."));
     },
   });
 

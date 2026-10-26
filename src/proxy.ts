@@ -1,8 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { inspectRequest, securityHeaders } from "@/server/security/request-guard";
 import { getSessionSecret, verifySession } from "@/server/session-token";
+import { DEVICE_COOKIE, LEGACY_DEVICE_COOKIES, deviceCookieOptions, issueDeviceToken, verifyDeviceToken } from "@/server/security/device-id";
 
 const SESSION_COOKIE = "sg_session";
+
+/** Định danh thiết bị cho quota AI: thiếu hoặc sai chữ ký thì cấp mới (HttpOnly, có chữ ký); cookie của cơ chế cũ thì xóa. */
+function syncDeviceCookie(request: NextRequest, response: NextResponse, secret: string, dev: boolean) {
+  if (!verifyDeviceToken(request.cookies.get(DEVICE_COOKIE)?.value, secret)) {
+    response.cookies.set(DEVICE_COOKIE, issueDeviceToken(secret), deviceCookieOptions(dev));
+  }
+  for (const name of LEGACY_DEVICE_COOKIES) {
+    if (request.cookies.has(name)) response.cookies.delete(name);
+  }
+}
 
 /**
  * Lớp 1 của pipeline bảo mật: lọc mọi request trước khi tới route/page.
@@ -14,6 +25,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const dev = process.env.NODE_ENV !== "production";
   const isApi = pathname.startsWith("/api/");
+  const secret = getSessionSecret();
 
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? request.nextUrl.host;
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -23,7 +35,7 @@ export function proxy(request: NextRequest) {
     pathname,
     headers: request.headers,
     expectedHost: host,
-    sessionValid: Boolean(token && verifySession(token, getSessionSecret())),
+    sessionValid: Boolean(token && verifySession(token, secret)),
     allowedOrigins: process.env.ALLOWED_ORIGINS?.split(",").map((s) => s.trim()).filter(Boolean),
   });
 
@@ -39,14 +51,7 @@ export function proxy(request: NextRequest) {
 
   for (const [k, v] of Object.entries(securityHeaders({ dev, isApi }))) response.headers.set(k, v);
 
-  if (!request.cookies.has("sg_device_id")) {
-    response.cookies.set("sg_device_id", crypto.randomUUID(), {
-      path: "/",
-      maxAge: 365 * 24 * 3600,
-      sameSite: "lax",
-      httpOnly: false,
-    });
-  }
+  syncDeviceCookie(request, response, secret, dev);
 
   return response;
 }

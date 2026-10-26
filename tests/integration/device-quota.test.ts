@@ -2,506 +2,227 @@ import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { createTestContainer } from "../helpers/test-container";
 import { sessionCookie } from "@/server/session";
-import { GET as getQuota, POST as resetQuota } from "@/app/api/device/quota/route";
+import * as quotaRoute from "@/app/api/device/quota/route";
 import { POST as chat } from "@/app/api/chat/route";
 import { POST as familyActivity } from "@/app/api/family/activity/route";
 import { POST as createPlan } from "@/app/api/plans/route";
 import { GET as listConversations } from "@/app/api/conversations/route";
-import { getDeviceQuotaLimiter, getRateLimiter, signDeviceQuota } from "@/server/security/rate-limit";
+import { getRateLimiter } from "@/server/security/rate-limit";
+import { issueDeviceToken } from "@/server/security/device-id";
 import { AIMessage } from "@langchain/core/messages";
 import { fakeModel } from "@langchain/core/testing";
 
-let ids: Awaited<ReturnType<typeof createTestContainer>>["ids"];
-let setChatModel: Awaited<ReturnType<typeof createTestContainer>>["setChatModel"];
+type Setup = Awaited<ReturnType<typeof createTestContainer>>;
+let ids: Setup["ids"];
+let container: Setup["container"];
+let setChatModel: Setup["setChatModel"];
 
-const makeModel = (count = 20) => {
+const secret = () => process.env.SESSION_SECRET as string;
+const newDevice = () => issueDeviceToken(secret());
+const deviceKey = (token: string) => `device:${token.split(".")[0]}`;
+
+let ipSeq = 0;
+/** Mỗi test một IP riêng để trần theo IP không ảnh hưởng chéo giữa các test */
+const newIp = () => `198.51.100.${++ipSeq}`;
+
+const makeModel = (count = 40) => {
   let m = fakeModel();
-  for (let i = 0; i < count; i++) {
-    m = m.respond(new AIMessage(`Phản hồi AI ${i}`));
-  }
+  for (let i = 0; i < count; i++) m = m.respond(new AIMessage(`Phản hồi AI ${i}`));
   return m;
 };
 
 beforeAll(async () => {
   const t = await createTestContainer();
   ids = t.ids;
+  container = t.container;
   setChatModel = t.setChatModel;
 });
 
 beforeEach(() => {
-  if (ids?.teacherId) {
-    getRateLimiter().reset(`ai:${ids.teacherId}`);
-    getRateLimiter().reset(`ai:demo-parent-1`);
-  }
-  setChatModel(makeModel(25));
+  getRateLimiter().reset(`ai:${ids.teacherId}`);
+  getRateLimiter().reset(`ai:demo-parent-1`);
+  setChatModel(makeModel());
 });
 
-const req = (
-  url: string,
-  init: { method?: string; body?: unknown; user?: string; deviceId?: string; deviceCookie?: string; quotaCookie?: string } = {},
-) => {
-  const cookies: string[] = [];
+interface ReqInit {
+  method?: string;
+  body?: unknown;
+  user?: string;
+  device?: string;
+  ip?: string;
+  cookies?: string[];
+  headers?: Record<string, string>;
+}
+
+const req = (url: string, init: ReqInit = {}) => {
+  const cookies = [...(init.cookies ?? [])];
   if (init.user) {
     const c = sessionCookie(init.user);
     if (c) cookies.push(`${c.name}=${c.value}`);
   }
-  if (init.deviceCookie) {
-    cookies.push(`sg_device_id=${init.deviceCookie}`);
-  }
-  if (init.quotaCookie) {
-    cookies.push(`sg_device_quota=${init.quotaCookie}`);
-  }
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-  };
-  if (cookies.length > 0) {
-    headers.cookie = cookies.join("; ");
-  }
-  if (init.deviceId) {
-    headers["x-device-id"] = init.deviceId;
-  }
-  return new NextRequest(`http://localhost${url}`, {
-    method: init.method ?? "GET",
-    headers,
-    body: init.body ? JSON.stringify(init.body) : undefined,
-  });
+  if (init.device) cookies.push(`sg_device=${init.device}`);
+  const headers: Record<string, string> = { "content-type": "application/json", ...init.headers };
+  if (cookies.length) headers.cookie = cookies.join("; ");
+  if (init.ip) headers["x-forwarded-for"] = init.ip;
+  return new NextRequest(`http://localhost${url}`, { method: init.method ?? "GET", headers, body: init.body ? JSON.stringify(init.body) : undefined });
 };
 
 const ctx = <P,>(params: P) => ({ params: Promise.resolve(params) });
 
-const getSetCookie = (res: Response, name: string): string | undefined => {
-  if ("cookies" in res && (res as { cookies?: { get(n: string): { value: string } | undefined } }).cookies) {
-    const c = (res as { cookies: { get(n: string): { value: string } | undefined } }).cookies.get(name);
-    if (c) return c.value;
-  }
-  const raw = res.headers.get("set-cookie") || "";
-  const match = new RegExp(`(?:^|,|;)\\s*${name}=([^;]+)`).exec(raw);
-  return match?.[1];
+let msgSeq = 0;
+const sendChat = (init: Omit<ReqInit, "body" | "method" | "user">) => {
+  const n = ++msgSeq;
+  return chat(
+    req("/api/chat", {
+      ...init,
+      method: "POST",
+      user: ids.teacherId,
+      body: { id: `conv-quota-${n}`, message: { id: `m-${n}`, role: "user", parts: [{ type: "text", text: `Tin nhắn ${n}` }] } },
+    }),
+    ctx({}),
+  );
 };
 
-describe("Device AI Quota & Rate Limit (Tối đa 5 lượt/thiết bị)", () => {
-  it("GET /api/device/quota trả về trạng thái quota ban đầu của thiết bị", async () => {
-    const deviceId = "device-test-api-init";
-    getDeviceQuotaLimiter().reset(deviceId);
+const getQuota = async (init: ReqInit) => (await quotaRoute.GET(req("/api/device/quota", init), ctx({}))).json();
 
-    const r = await getQuota(req("/api/device/quota", { deviceId }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    expect(data).toMatchObject({
-      deviceId,
-      limit: 5,
-      used: 0,
-      remaining: 5,
-      isExceeded: false,
-      message: null,
-    });
+const QUOTA_ERROR = { error: { code: "ERR-QUOTA-EXCEEDED", message: "Quá hạn sử dụng, bạn phải mua thêm lượt" } };
+
+describe("Quota AI dùng thử: 5 lượt/thiết bị, 15 lượt/mạng (IP)", () => {
+  it("GET /api/device/quota trả về trạng thái ban đầu, kể cả khi chưa có cookie thiết bị", async () => {
+    const initial = { limit: 5, used: 0, remaining: 5, isExceeded: false, message: null };
+    expect(await getQuota({ device: newDevice(), ip: newIp() })).toEqual(initial);
+    expect(await getQuota({ ip: newIp() })).toEqual(initial);
   });
 
-  it("nhận diện thiết bị qua cookie sg_device_id và tự gán cookie nếu chưa có", async () => {
-    // Trường hợp chưa có cookie: API trả về cookie Set-Cookie sg_device_id
-    const freshRes = await getQuota(req("/api/device/quota"));
-    expect(freshRes.status).toBe(200);
-    expect(freshRes.cookies.get("sg_device_id")).toBeDefined();
+  it("chặn đúng sau 5 lượt, trả 429 và thông báo 'Quá hạn sử dụng, bạn phải mua thêm lượt'", async () => {
+    const device = newDevice();
+    const ip = newIp();
 
-    // Trường hợp đã có cookie: nhận diện đúng deviceId đó
-    const deviceCookie = "dev-cookie-12345678";
-    getDeviceQuotaLimiter().reset(deviceCookie);
-
-    const r = await getQuota(req("/api/device/quota", { deviceCookie }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    expect(data.deviceId).toBe(deviceCookie);
-    expect(data.limit).toBe(5);
-    expect(data.used).toBe(0);
-  });
-
-  it("chặn đúng sau 5 lượt request AI, trả 429 và thông báo 'Quá hạn sử dụng, bạn phải mua thêm lượt'", async () => {
-    const deviceId = "device-test-5-limit";
-    getDeviceQuotaLimiter().reset(deviceId);
-
-    // 5 lượt AI đầu tiên thành công với status 200 và header quota giảm dần
     for (let i = 1; i <= 5; i++) {
-      const res = await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId,
-          body: {
-            id: `conv-quota-seq-${i}`,
-            message: { id: `m-${i}`, role: "user", parts: [{ type: "text", text: `Tin nhắn ${i}` }] },
-          },
-        }),
-        ctx({}),
-      );
+      const res = await sendChat({ device, ip });
       expect(res.status).toBe(200);
       expect(res.headers.get("X-Device-AI-Limit")).toBe("5");
       expect(res.headers.get("X-Device-AI-Used")).toBe(String(i));
       expect(res.headers.get("X-Device-AI-Remaining")).toBe(String(5 - i));
     }
 
-    // Lượt thứ 6 bị chặn với mã 429, mã lỗi ERR-QUOTA-EXCEEDED và thông báo quá hạn
-    const blocked6 = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId,
-        body: {
-          id: "conv-quota-seq-6",
-          message: { id: "m-6", role: "user", parts: [{ type: "text", text: "Tin nhắn thứ 6" }] },
-        },
-      }),
-      ctx({}),
-    );
-
-    expect(blocked6.status).toBe(429);
-    expect(blocked6.headers.get("Retry-After")).toBe("86400");
-    expect(blocked6.headers.get("X-Device-AI-Limit")).toBe("5");
-    expect(blocked6.headers.get("X-Device-AI-Remaining")).toBe("0");
-    expect(blocked6.headers.get("X-Device-AI-Used")).toBe("5");
-
-    const blockedData = await blocked6.json();
-    expect(blockedData).toEqual({
-      error: {
-        code: "ERR-QUOTA-EXCEEDED",
-        message: "Quá hạn sử dụng, bạn phải mua thêm lượt",
-      },
-    });
-
-    // Lượt thứ 7 và 8 tiếp tục bị chặn triệt để (không cho truy cập thêm)
-    for (const seq of [7, 8]) {
-      const blockedSeq = await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId,
-          body: {
-            id: `conv-quota-seq-${seq}`,
-            message: { id: `m-${seq}`, role: "user", parts: [{ type: "text", text: `Tin nhắn thứ ${seq}` }] },
-          },
-        }),
-        ctx({}),
-      );
-      expect(blockedSeq.status).toBe(429);
-      const data = await blockedSeq.json();
-      expect(data.error.code).toBe("ERR-QUOTA-EXCEEDED");
-      expect(data.error.message).toBe("Quá hạn sử dụng, bạn phải mua thêm lượt");
+    for (let i = 0; i < 3; i++) {
+      const blocked = await sendChat({ device, ip });
+      expect(blocked.status).toBe(429);
+      expect(blocked.headers.get("Retry-After")).toBe("86400");
+      expect(blocked.headers.get("X-Device-AI-Remaining")).toBe("0");
+      expect(await blocked.json()).toEqual(QUOTA_ERROR);
     }
 
-    // Kiểm tra API quota phản ánh trạng thái isExceeded: true
-    const quotaRes = await getQuota(req("/api/device/quota", { deviceId }));
-    const quotaData = await quotaRes.json();
-    expect(quotaData).toMatchObject({
-      limit: 5,
-      used: 5,
-      remaining: 0,
-      isExceeded: true,
-      message: "Quá hạn sử dụng, bạn phải mua thêm lượt",
-    });
+    expect(await getQuota({ device, ip })).toMatchObject({ used: 5, remaining: 0, isExceeded: true, message: "Quá hạn sử dụng, bạn phải mua thêm lượt" });
   });
 
-  it("chặn trên tất cả các tính năng AI khác nhau (cross-feature quota) khi thiết bị đã đạt 5 lượt", async () => {
-    const deviceId = "device-test-cross-feature";
-    getDeviceQuotaLimiter().reset(deviceId);
+  it("chặn trên mọi tính năng AI khi thiết bị đã dùng hết lượt", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    for (let i = 0; i < 5; i++) expect((await sendChat({ device, ip })).status).toBe(200);
 
-    // Sử dụng hết 5 lượt qua chat giáo viên
-    for (let i = 1; i <= 5; i++) {
-      const res = await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId,
-          body: {
-            id: `conv-cross-${i}`,
-            message: { id: `m-cross-${i}`, role: "user", parts: [{ type: "text", text: `Tin nhắn ${i}` }] },
-          },
-        }),
-        ctx({}),
-      );
-      expect(res.status).toBe(200);
-    }
+    const activity = await familyActivity(req("/api/family/activity", { method: "POST", user: "demo-parent-1", device, ip, body: { studentId: ids.huyId } }), ctx({}));
+    expect(activity.status).toBe(429);
+    expect(await activity.json()).toEqual(QUOTA_ERROR);
 
-    // 1. Thử gọi API gợi ý hoạt động gia đình (/api/family/activity) -> BỊ CHẶN 429
-    const blockedFamilyActivity = await familyActivity(
-      req("/api/family/activity", {
-        method: "POST",
-        user: "demo-parent-1",
-        deviceId,
-        body: { studentId: ids.huyId },
-      }),
-      ctx({}),
-    );
-    expect(blockedFamilyActivity.status).toBe(429);
-    const familyData = await blockedFamilyActivity.json();
-    expect(familyData).toEqual({
-      error: {
-        code: "ERR-QUOTA-EXCEEDED",
-        message: "Quá hạn sử dụng, bạn phải mua thêm lượt",
-      },
-    });
-
-    // 2. Thử gọi API tạo giáo án AI (/api/plans) -> BỊ CHẶN 429
-    const blockedPlan = await createPlan(
+    const plan = await createPlan(
       req("/api/plans", {
         method: "POST",
         user: ids.teacherId,
-        deviceId,
-        body: {
-          ageGroup: "4-5y",
-          developmentArea: "physical",
-          topic: "Bài thể dục sáng",
-          materials: ["Bóng nhựa"],
-          duration: 20,
-          space: "indoor",
-        },
+        device,
+        ip,
+        body: { ageGroup: "4-5y", developmentArea: "physical", topic: "Bài thể dục sáng", materials: ["Bóng nhựa"], duration: 20, space: "indoor" },
       }),
       ctx({}),
     );
-    expect(blockedPlan.status).toBe(429);
-    const planData = await blockedPlan.json();
-    expect(planData).toEqual({
-      error: {
-        code: "ERR-QUOTA-EXCEEDED",
-        message: "Quá hạn sử dụng, bạn phải mua thêm lượt",
-      },
-    });
+    expect(plan.status).toBe(429);
+    expect(await plan.json()).toEqual(QUOTA_ERROR);
   });
 
-  it("các API không phải AI (non-AI routes) vẫn hoạt động bình thường kể cả khi đã hết hạn mức AI", async () => {
-    const deviceId = "device-test-non-ai";
-    getDeviceQuotaLimiter().reset(deviceId);
+  it("API không phải AI vẫn hoạt động khi đã hết lượt AI", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    for (let i = 0; i < 5; i++) await sendChat({ device, ip });
 
-    // Dùng hết 5 lượt AI
-    for (let i = 1; i <= 5; i++) {
-      await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId,
-          body: {
-            id: `conv-nonai-${i}`,
-            message: { id: `m-${i}`, role: "user", parts: [{ type: "text", text: `Hỏi ${i}` }] },
-          },
-        }),
-        ctx({}),
-      );
-    }
-
-    // GET /api/device/quota vẫn trả 200 OK
-    const quotaRes = await getQuota(req("/api/device/quota", { deviceId }));
-    expect(quotaRes.status).toBe(200);
-
-    // GET /api/conversations vẫn trả 200 OK (không bị chặn)
-    const convRes = await listConversations(req("/api/conversations", { user: ids.teacherId, deviceId }), ctx({}));
-    expect(convRes.status).toBe(200);
+    const conv = await listConversations(req("/api/conversations", { user: ids.teacherId, device, ip }), ctx({}));
+    expect(conv.status).toBe(200);
   });
 
-  it("cô lập hạn mức hoàn toàn giữa các thiết bị khác nhau (Device Isolation)", async () => {
-    const deviceA = "device-isolated-AAA1";
-    const deviceB = "device-isolated-BBB2";
-    getDeviceQuotaLimiter().reset(deviceA);
-    getDeviceQuotaLimiter().reset(deviceB);
+  it("thiết bị khác cùng mạng vẫn dùng được khi trần IP còn lượt", async () => {
+    const ip = newIp();
+    const deviceA = newDevice();
+    for (let i = 0; i < 5; i++) await sendChat({ device: deviceA, ip });
+    expect((await sendChat({ device: deviceA, ip })).status).toBe(429);
 
-    // Thiết bị A dùng hết 5 lượt
-    for (let i = 1; i <= 5; i++) {
-      const resA = await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId: deviceA,
-          body: {
-            id: `conv-iso-a-${i}`,
-            message: { id: `m-a-${i}`, role: "user", parts: [{ type: "text", text: `Tin nhắn A ${i}` }] },
-          },
-        }),
-        ctx({}),
-      );
-      expect(resA.status).toBe(200);
-    }
-
-    // Thiết bị A gửi tiếp lần 6 -> Bị chặn 429
-    const blockedA = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId: deviceA,
-        body: {
-          id: "conv-iso-a-6",
-          message: { id: "m-a-6", role: "user", parts: [{ type: "text", text: "Tin nhắn A lần 6" }] },
-        },
-      }),
-      ctx({}),
-    );
-    expect(blockedA.status).toBe(429);
-
-    // Thiết bị B gửi request lần 1 -> THÀNH CÔNG 200, không bị ảnh hưởng bởi thiết bị A
-    const resB = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId: deviceB,
-        body: {
-          id: "conv-iso-b-1",
-          message: { id: "m-b-1", role: "user", parts: [{ type: "text", text: "Tin nhắn B lần 1" }] },
-        },
-      }),
-      ctx({}),
-    );
+    const resB = await sendChat({ device: newDevice(), ip });
     expect(resB.status).toBe(200);
     expect(resB.headers.get("X-Device-AI-Used")).toBe("1");
     expect(resB.headers.get("X-Device-AI-Remaining")).toBe("4");
   });
 
-  it("reset quota mở khóa và cho phép tiếp tục truy cập các tính năng AI", async () => {
-    const deviceId = "device-test-reset-flow";
-    getDeviceQuotaLimiter().reset(deviceId);
+  it("số lượt lưu trong DB (bảng AiQuota), không phụ thuộc cookie hay RAM", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    for (let i = 0; i < 3; i++) await sendChat({ device, ip });
 
-    // Dùng hết 5 lượt
-    for (let i = 1; i <= 5; i++) {
-      await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId,
-          body: {
-            id: `conv-rst-${i}`,
-            message: { id: `m-${i}`, role: "user", parts: [{ type: "text", text: `Tin ${i}` }] },
-          },
-        }),
-        ctx({}),
-      );
-    }
-
-    // Đang bị chặn
-    const blocked = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId,
-        body: {
-          id: "conv-rst-blocked",
-          message: { id: "m-blk", role: "user", parts: [{ type: "text", text: "Tin bị chặn" }] },
-        },
-      }),
-      ctx({}),
-    );
-    expect(blocked.status).toBe(429);
-
-    // Reset quota qua API POST /api/device/quota
-    const resetRes = await resetQuota(req("/api/device/quota", { method: "POST", deviceId }));
-    expect(resetRes.status).toBe(200);
-    const resetData = await resetRes.json();
-    expect(resetData).toMatchObject({
-      ok: true,
-      limit: 5,
-      used: 0,
-      remaining: 5,
-      isExceeded: false,
-    });
-
-    // Sau khi reset, thiết bị có thể tiếp tục tương tác bình thường
-    const unblocked = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId,
-        body: {
-          id: "conv-rst-success",
-          message: { id: "m-ok", role: "user", parts: [{ type: "text", text: "Tin sau reset" }] },
-        },
-      }),
-      ctx({}),
-    );
-    expect(unblocked.status).toBe(200);
-    expect(unblocked.headers.get("X-Device-AI-Used")).toBe("1");
-    expect(unblocked.headers.get("X-Device-AI-Remaining")).toBe("4");
+    expect(await container.prisma.aiQuota.findUnique({ where: { key: deviceKey(device) } })).toMatchObject({ used: 3 });
+    expect(await container.prisma.aiQuota.findUnique({ where: { key: `ip:${ip}` } })).toMatchObject({ used: 3 });
+    expect(await getQuota({ device, ip })).toMatchObject({ used: 3, remaining: 2 });
   });
 
-  it("duy trì trạng thái quota khi reload (không bị reset về 5 lượt khi gọi lại GET /api/device/quota)", async () => {
-    const deviceId = "device-test-reload-persistence";
-    getDeviceQuotaLimiter().reset(deviceId);
-
-    // Giả lập thiết bị đã dùng 3 lượt, mang theo signed cookie sg_device_quota
-    const quotaToken = signDeviceQuota(deviceId, 3, false);
-
-    // Khi người dùng reload trang (gọi GET /api/device/quota với cookie), server đọc đúng 3 lượt và còn 2
-    const res = await getQuota(req("/api/device/quota", { deviceId, quotaCookie: quotaToken }));
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.deviceId).toBe(deviceId);
-    expect(data.used).toBe(3);
-    expect(data.remaining).toBe(2);
-    expect(data.isExceeded).toBe(false);
-
-    // Response cấp lại cookie đã ký có cùng trạng thái
-    expect(res.cookies.get("sg_device_quota")).toBeDefined();
+  it("input sai bị từ chối trước khi trừ lượt (gửi sai không mất lượt)", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    const invalid = await createPlan(req("/api/plans", { method: "POST", user: ids.teacherId, device, ip, body: { topic: "" } }), ctx({}));
+    expect(invalid.status).toBe(400);
+    expect(await getQuota({ device, ip })).toMatchObject({ used: 0, remaining: 5 });
   });
 
-  it("khóa thiết bị khi dùng đủ 5 lượt, reload vẫn tiếp tục bị khóa (isExceeded: true)", async () => {
-    const deviceId = "device-test-permanent-block";
-    getDeviceQuotaLimiter().reset(deviceId);
+  it("handler lỗi sau khi đã trừ lượt vẫn tính lượt (AI có thể đã được gọi)", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    // phụ huynh 1 xin gợi ý cho bé không phải con mình → service từ chối sau khi request đã hợp lệ về mặt input
+    const denied = await familyActivity(req("/api/family/activity", { method: "POST", user: "demo-parent-1", device, ip, body: { studentId: ids.otherStudentId } }), ctx({}));
+    expect(denied.status).toBeGreaterThanOrEqual(400);
+    expect(denied.status).not.toBe(429);
+    expect(await getQuota({ device, ip })).toMatchObject({ used: 1, remaining: 4 });
+  });
 
-    // Gửi 5 lượt chat để dùng hết hạn mức
-    let lastCookie: string | undefined;
-    for (let i = 1; i <= 5; i++) {
-      const res = await chat(
-        req("/api/chat", {
-          method: "POST",
-          user: ids.teacherId,
-          deviceId,
-          quotaCookie: lastCookie,
-          body: {
-            id: `conv-block-persist-${i}`,
-            message: { id: `m-blk-${i}`, role: "user", parts: [{ type: "text", text: `Lần ${i}` }] },
-          },
-        }),
-        ctx({}),
-      );
-      expect(res.status).toBe(200);
-      lastCookie = getSetCookie(res, "sg_device_quota");
+  it("chưa đăng nhập hoặc sai vai trò: bị chặn trước, không mất lượt", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    const anonymous = await chat(req("/api/chat", { method: "POST", device, ip, body: {} }), ctx({}));
+    expect(anonymous.status).toBe(401);
+    const wrongRole = await familyActivity(req("/api/family/activity", { method: "POST", user: ids.teacherId, device, ip, body: { studentId: ids.huyId } }), ctx({}));
+    expect(wrongRole.status).toBe(403);
+    expect(await getQuota({ device, ip })).toMatchObject({ used: 0 });
+  });
+});
+
+describe("Các cách bypass quota cũ đã bị chặn", () => {
+  it("không còn API reset quota (POST /api/device/quota)", () => {
+    expect(quotaRoute).not.toHaveProperty("POST");
+  });
+
+  it("header x-device-id và cookie sg_device_id tự đặt bị bỏ qua", async () => {
+    const device = newDevice();
+    const ip = newIp();
+    for (let i = 0; i < 5; i++) await sendChat({ device, ip });
+
+    const spoofed = await sendChat({ device, ip, headers: { "x-device-id": "thiet-bi-moi-12345678" }, cookies: ["sg_device_id=thiet-bi-moi-87654321"] });
+    expect(spoofed.status).toBe(429);
+  });
+
+  it("xóa cookie / tự chế cookie để làm 'thiết bị mới' liên tục: bị chặn bởi trần 15 lượt của mạng", async () => {
+    const ip = newIp();
+    for (let i = 1; i <= 15; i++) {
+      // mỗi request một thiết bị mới (như xóa cookie rồi tải lại trang)
+      expect((await sendChat({ device: newDevice(), ip })).status).toBe(200);
     }
-
-    // Lượt thứ 6 bị chặn 429
-    const blocked = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId,
-        quotaCookie: lastCookie,
-        body: {
-          id: "conv-block-persist-6",
-          message: { id: "m-blk-6", role: "user", parts: [{ type: "text", text: "Lần 6" }] },
-        },
-      }),
-      ctx({}),
-    );
-    expect(blocked.status).toBe(429);
-    const blockedCookie = getSetCookie(blocked, "sg_device_quota") || lastCookie;
-
-    // Giờ người dùng F5 / reload lại toàn bộ trang (gọi GET /api/device/quota)
-    const reloadRes = await getQuota(req("/api/device/quota", { deviceId, quotaCookie: blockedCookie }));
-    expect(reloadRes.status).toBe(200);
-    const reloadData = await reloadRes.json();
-    expect(reloadData.used).toBe(5);
-    expect(reloadData.remaining).toBe(0);
-    expect(reloadData.isExceeded).toBe(true);
-    expect(reloadData.message).toBe("Quá hạn sử dụng, bạn phải mua thêm lượt");
-
-    // Và tiếp tục gửi request AI khác cũng bị chặn 429
-    const retryAfterReload = await chat(
-      req("/api/chat", {
-        method: "POST",
-        user: ids.teacherId,
-        deviceId,
-        quotaCookie: blockedCookie,
-        body: {
-          id: "conv-block-persist-7",
-          message: { id: "m-blk-7", role: "user", parts: [{ type: "text", text: "Thử lại sau reload" }] },
-        },
-      }),
-      ctx({}),
-    );
-    expect(retryAfterReload.status).toBe(429);
-    const err = await retryAfterReload.json();
-    expect(err.error.code).toBe("ERR-QUOTA-EXCEEDED");
+    expect((await sendChat({ device: newDevice(), ip })).status).toBe(429);
+    // không gửi cookie, hoặc gửi cookie giả chữ ký: chỉ còn trần IP và trần đó đã hết
+    expect((await sendChat({ ip })).status).toBe(429);
+    expect((await sendChat({ ip, cookies: ["sg_device=AAAAAAAAAAAAAAAAAAAAAA.gia-mao"] })).status).toBe(429);
   });
 });

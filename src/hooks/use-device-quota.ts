@@ -1,98 +1,33 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { getClientDeviceId } from "@/lib/api-client";
+import { useCallback, useEffect, useState } from "react";
+import { clearLegacyStorage, DEVICE_QUOTA_EVENT, publishQuota, readCachedQuota, type DeviceQuota } from "@/lib/device-quota";
 
-export interface DeviceQuota {
-  limit: number;
-  used: number;
-  remaining: number;
-  isExceeded: boolean;
-  message: string | null;
-}
+export type { DeviceQuota };
 
-export const DEVICE_QUOTA_EVENT = "sg:device-quota-updated";
-
-export function broadcastDeviceQuota(quota: DeviceQuota) {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(DEVICE_QUOTA_EVENT, { detail: quota }));
-  }
-}
-
-const getInitialQuota = (): DeviceQuota => {
-  if (typeof window === "undefined") {
-    return { limit: 5, used: 0, remaining: 5, isExceeded: false, message: null };
-  }
-  try {
-    const isBlocked = localStorage.getItem("sg_device_blocked") === "true";
-    const raw = localStorage.getItem("sg_device_quota");
-    if (raw) {
-      const parsed = JSON.parse(raw) as DeviceQuota;
-      if (isBlocked) {
-        parsed.isExceeded = true;
-        parsed.used = Math.max(parsed.used, parsed.limit);
-        parsed.remaining = 0;
-        parsed.message = "Quá hạn sử dụng, bạn phải mua thêm lượt";
-      }
-      return parsed;
-    }
-    if (isBlocked) {
-      return { limit: 5, used: 5, remaining: 0, isExceeded: true, message: "Quá hạn sử dụng, bạn phải mua thêm lượt" };
-    }
-  } catch {}
-  return { limit: 5, used: 0, remaining: 5, isExceeded: false, message: null };
-};
-
+/**
+ * Số lượt AI còn lại để hiển thị. Lần đầu lấy từ cache cho nhanh, rồi hỏi lại server (nguồn sự thật);
+ * sau đó tự cập nhật mỗi khi có phản hồi API mang số lượt mới (sự kiện DEVICE_QUOTA_EVENT).
+ */
 export function useDeviceQuota() {
-  const [quota, setQuota] = useState<DeviceQuota>(getInitialQuota);
-  const [loading, setLoading] = useState(true);
+  const [quota, setQuota] = useState<DeviceQuota>(readCachedQuota);
 
   const refresh = useCallback(async () => {
     try {
-      const deviceId = getClientDeviceId();
-      const res = await fetch("/api/device/quota", {
-        headers: deviceId ? { "x-device-id": deviceId } : undefined,
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as DeviceQuota;
-      const wasBlocked = typeof window !== "undefined" && localStorage.getItem("sg_device_blocked") === "true";
-      if (wasBlocked) {
-        data.isExceeded = true;
-        data.used = Math.max(data.used, data.limit);
-        data.remaining = 0;
-        data.message = "Quá hạn sử dụng, bạn phải mua thêm lượt";
-      }
-      if (data.isExceeded) {
-        try {
-          localStorage.setItem("sg_device_blocked", "true");
-        } catch {}
-      }
-      try {
-        localStorage.setItem("sg_device_quota", JSON.stringify(data));
-      } catch {}
-      setQuota(data);
-      broadcastDeviceQuota(data);
+      const res = await fetch("/api/device/quota");
+      if (res.ok) publishQuota((await res.json()) as DeviceQuota);
     } catch {
-      // Bỏ qua lỗi mạng
-    } finally {
-      setLoading(false);
+      // lỗi mạng: giữ nguyên số đang hiển thị
     }
   }, []);
 
   useEffect(() => {
+    clearLegacyStorage();
+    const onUpdate = (event: Event) => setQuota((event as CustomEvent<DeviceQuota>).detail);
+    window.addEventListener(DEVICE_QUOTA_EVENT, onUpdate);
     void refresh();
-
-    const handler = (e: Event) => {
-      const customEvent = e as CustomEvent<DeviceQuota>;
-      if (customEvent.detail) {
-        setQuota(customEvent.detail);
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener(DEVICE_QUOTA_EVENT, handler);
-    return () => window.removeEventListener(DEVICE_QUOTA_EVENT, handler);
+    return () => window.removeEventListener(DEVICE_QUOTA_EVENT, onUpdate);
   }, [refresh]);
 
-  return { quota, loading, refresh };
+  return { quota, refresh };
 }

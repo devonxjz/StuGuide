@@ -336,3 +336,11 @@ model LearningSession {
 
   @@index([studentId, updatedAt])
 }
+
+/// Bộ đếm lượt AI dùng thử. `key` là "device:<id thiết bị do server cấp>" hoặc "ip:<địa chỉ/dải mạng>".
+/// Lưu DB (không lưu RAM/cookie) để client không xóa được và khởi động lại server không mất.
+model AiQuota {
+  key       String   @id
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
