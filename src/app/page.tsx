@@ -94,7 +94,7 @@ export default function Landing() {
 
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden">
+        <section className="relative isolate overflow-hidden">
           <div aria-hidden className="bg-grid pointer-events-none absolute inset-0 -z-10" />
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
             <DecorBlocks className="absolute top-28 left-[8%] w-24 animate-float" />
@@ -137,7 +137,7 @@ export default function Landing() {
                 </a>
               </div>
             </Reveal>
-            <Reveal delay={320} className="mt-16">
+            <Reveal delay={320} className="mt-28">
               <div className="relative mx-auto max-w-3xl">
                 <DecorKids className="pointer-events-none absolute -top-[5.2rem] left-1/2 w-56 -translate-x-1/2 sm:w-64" />
                 <HeroDemo />

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   serverExternalPackages: ["better-sqlite3", "@prisma/adapter-better-sqlite3"],
   outputFileTracingIncludes: {
+    "/*": ["./prisma/seed.db"],
     "/api/**/*": ["./prisma/seed.db"],
   },
   turbopack: {
