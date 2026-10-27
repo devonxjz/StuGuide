@@ -6,14 +6,14 @@ import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Image from "next/image";
-import { AlertCircle, ClipboardCheck, PlusCircle, RotateCcw, Sparkles, Square, Users, WifiOff } from "lucide-react";
+import { ClipboardCheck, PlusCircle, RotateCcw, Square, Users, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
-import { DeviceQuotaBadge } from "@/components/shared/device-quota-badge";
-import { useDeviceQuota } from "@/hooks/use-device-quota";
+import { useDeviceQuota, type DeviceQuota } from "@/hooks/use-device-quota";
 import { quotaAwareFetch } from "@/lib/device-quota";
 import { userMessage } from "@/lib/api-error";
+import { QUOTA_EXCEEDED_MESSAGE } from "@/core/constants/quota";
 import { cn } from "@/lib/utils";
 import type { StatusData, StuGuideMessage } from "@/types/chat";
 import { ChatActionsContext } from "./chat-context";
@@ -41,10 +41,18 @@ const SLOW_AFTER_MS = 20_000;
 
 const FIRST_PROMPT = "Soạn trò chơi cho lớp 4–5 tuổi, mảng tình cảm, chủ đề Bản thân & Tình bạn, có hộp sữa, rổ nhựa, bóng";
 const SUGGESTIONS = [
-  "📜 Tra cứu căn cứ pháp lý cho lớp 4–5 tuổi mảng tình cảm",
-  "🔍 Bé nào trong lớp cần quan sát sâu?",
-  "💖 Tỷ lệ phụ huynh phản hồi bao nhiêu rồi?",
-  "🪀 Gợi ý trò chơi dân gian rèn khéo léo",
+  "Tra cứu căn cứ pháp lý cho lớp 4–5 tuổi mảng tình cảm",
+  "Bé nào trong lớp cần quan sát sâu?",
+  "Tỷ lệ phụ huynh phản hồi bao nhiêu rồi?",
+  "Gợi ý trò chơi dân gian rèn khéo léo",
+];
+
+/** Lối vào nhanh ở màn chào: gửi sẵn một câu cho trợ lý, hoặc mở một trang khác. */
+type QuickAction = { icon: LucideIcon; title: string; hint: string } & ({ prompt: string } | { href: string });
+const QUICK_ACTIONS: QuickAction[] = [
+  { icon: PlusCircle, title: "Soạn trò chơi mới", hint: "Kèm căn cứ pháp lý và lưu ý an toàn", prompt: FIRST_PROMPT },
+  { icon: ClipboardCheck, title: "Ghi nhận quan sát", hint: "Tích chọn cả lớp trong 30 giây", href: "/teacher/assess" },
+  { icon: Users, title: "Thẻ cho phụ huynh", hint: "Nhiệm vụ 5 phút buổi tối", prompt: "Soạn thẻ nhiệm vụ 5 phút cho phụ huynh" },
 ];
 
 /** Màn hình chính của giáo viên: làm việc bằng cách nhắn tin, kết quả hiện thành thẻ trong chat. */
@@ -142,7 +150,7 @@ export function ChatWorkspace({
   return (
     <ChatActionsContext.Provider value={{ send }}>
       <div className="flex h-[calc(100dvh-7.5rem)] flex-col md:h-[calc(100dvh-3.4rem)]">
-        <div className="bg-playful-dots bg-white scroll-thin flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        <div className="scroll-thin flex-1 overflow-y-auto bg-white px-4 py-6 md:px-8">
           <div className="mx-auto max-w-3xl space-y-5">
             {messages.length === 0 ? (
               <Welcome teacherName={teacherName} className={className} onPick={send} quota={quota} />
@@ -152,8 +160,8 @@ export function ChatWorkspace({
 
             {showTyping && (
               <div className="flex items-start gap-3" aria-live="polite">
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-tr from-primary to-violet-500 text-white">
-                  <Sparkles className="size-4" aria-hidden />
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white p-1">
+                  <Image src="/stuguide-icon.png" alt="" width={24} height={24} className="size-5.5 object-contain" />
                 </span>
                 <div className="py-1.5">
                   {activity?.type === "step" ? (
@@ -173,18 +181,11 @@ export function ChatWorkspace({
               <div
                 role="alert"
                 className={cn(
-                  "flex flex-wrap items-center gap-3 rounded-2xl border p-4 text-sm",
-                  busyNotice.includes("Quá hạn")
-                    ? "border-rose-300 bg-rose-50 text-rose-800"
-                    : "border-sun/50 bg-sun-soft text-sun-strong",
+                  "flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 text-sm",
+                  busyNotice.includes("Quá hạn") ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-800",
                 )}
               >
-                {busyNotice.includes("Quá hạn") ? (
-                  <AlertCircle className="size-5 shrink-0 text-rose-600" aria-hidden />
-                ) : (
-                  <WifiOff className="size-5 shrink-0" aria-hidden />
-                )}
-                <p className="min-w-0 flex-1 font-medium">{busyNotice}</p>
+                <p className="min-w-0 flex-1">{busyNotice}</p>
                 {!quota.isExceeded && !busyNotice.includes("Quá hạn") && (
                   <Button size="sm" variant="sun" onClick={retry}>
                     <RotateCcw /> Gửi lại
@@ -200,13 +201,9 @@ export function ChatWorkspace({
         <div className="border-t bg-background/90 px-4 py-3 backdrop-blur md:px-8">
           <div className="mx-auto max-w-3xl space-y-2">
             {quota.isExceeded && (
-              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-rose-800 animate-pop-in">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="size-4 shrink-0 text-rose-600" aria-hidden />
-                  <span className="text-xs sm:text-sm font-bold">Quá hạn sử dụng, bạn phải mua thêm lượt</span>
-                </div>
-                <DeviceQuotaBadge quota={quota} />
-              </div>
+              <p role="alert" className="rounded-xl bg-rose-50 px-4 py-2.5 text-center text-sm text-rose-700">
+                {QUOTA_EXCEEDED_MESSAGE}
+              </p>
             )}
             {messages.length > 0 && !busy && !quota.isExceeded && (
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -231,7 +228,7 @@ export function ChatWorkspace({
                 </Button>
               )}
             </div>
-            <p className="text-center text-[11px] text-muted-foreground">AI chỉ tạo bản nháp – cô luôn là người rà soát và phê duyệt. Không chẩn đoán, không dán nhãn trẻ.</p>
+            <p className="text-center text-[11px] text-slate-400">AI chỉ tạo bản nháp – cô luôn là người duyệt cuối.</p>
           </div>
         </div>
       </div>
@@ -247,153 +244,61 @@ function Welcome({
 }: {
   teacherName: string;
   className: string;
-  onPick: (t: string) => void;
-  quota?: import("@/hooks/use-device-quota").DeviceQuota;
+  onPick: (text: string) => void;
+  quota: DeviceQuota;
 }) {
   const first = teacherName.split(" ").slice(-1)[0];
+  const tile =
+    "flex flex-col items-start gap-1 rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50";
+
   return (
-    <div className="space-y-8 py-6 animate-pop-in">
-      <div className="text-center relative">
-        {/* Hero Motion Graphic với ánh sáng hào quang và floating logo StuGuide */}
-        <div className="relative mx-auto mb-5 size-14">
-          <div className="absolute -inset-3 rounded-full bg-gradient-to-tr from-blue-500/20 to-violet-500/20 blur-xl" />
-          <span className="relative grid size-14 place-items-center rounded-2xl bg-white p-2.5 shadow-soft border border-slate-200">
-            <Image
-              src="/stuguide-icon.png"
-              alt="StuGuide Mascot"
-              width={48}
-              height={48}
-              className="size-9 object-contain"
-              priority
-            />
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
-            <Sparkles className="size-3.5 text-violet-600" />
-            StuGuide AI · Trợ Lý Giáo Viên Mầm Non & Hoạt Động Trẻ
-          </div>
-          <DeviceQuotaBadge quota={quota} />
-        </div>
-
-        <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl text-slate-900">
-          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} mình cùng chơi gì ạ?
+    <div className="space-y-8 py-10 animate-pop-in">
+      <div className="text-center">
+        <Image src="/stuguide-icon.png" alt="StuGuide" width={40} height={40} className="mx-auto mb-5 size-10 object-contain" priority />
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-slate-900">
+          Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} chơi gì ạ?
         </h1>
-        <p className="mx-auto mt-2 max-w-lg text-balance text-sm text-slate-500 leading-relaxed">
-          Cô cứ nhắn tự nhiên như nói chuyện, mình sẽ soạn kế hoạch chuẩn TT 45, kiểm tra an toàn vật liệu và chuẩn bị thẻ 5 phút cho phụ huynh.
-        </p>
-
-        {quota?.isExceeded && (
-          <div role="alert" className="mx-auto mt-4 max-w-lg rounded-2xl border border-rose-300 bg-rose-50 p-4 text-center text-rose-900 shadow-sm animate-pop-in">
-            <div className="flex items-center justify-center gap-2 font-bold text-sm sm:text-base">
-              <AlertCircle className="size-5 text-rose-600 shrink-0" />
-              <span>Quá hạn sử dụng, bạn phải mua thêm lượt</span>
-            </div>
-            <p className="mt-1 text-xs text-rose-700">
-              Thiết bị đã đạt giới hạn tối đa 5 lượt làm việc với AI. Không thể tiếp tục truy cập tính năng AI. Vui lòng mua thêm lượt để tiếp tục.
-            </p>
-          </div>
+        <p className="mt-2 text-sm text-slate-500">Cô cứ nhắn tự nhiên, mình soạn giúp cô.</p>
+        {quota.isExceeded && (
+          <p role="alert" className="mx-auto mt-4 max-w-md rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
+            {QUOTA_EXCEEDED_MESSAGE}
+          </p>
         )}
       </div>
 
-      {/* 3 Thẻ hành động nhanh với màu sắc đồ họa rực rỡ & hiệu ứng tương tác mượt mà */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <button
-          type="button"
-          disabled={quota?.isExceeded}
-          onClick={() => onPick(FIRST_PROMPT)}
-          className={cn(
-            "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-300",
-            quota?.isExceeded
-              ? "opacity-60 cursor-not-allowed"
-              : "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15)] active:scale-[0.99]",
-          )}
-        >
-          <div>
-            <div className="mb-4 inline-grid size-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors group-hover:border-primary/30 group-hover:text-primary">
-              <PlusCircle className="size-5" aria-hidden />
-            </div>
-            <span className="block font-black text-base text-slate-900 group-hover:text-primary transition-colors flex items-center gap-1.5">
-              Tạo Kế hoạch & Trò chơi
-            </span>
-            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed">
-              Một câu yêu cầu là có ngay bản nháp trích dẫn VBHN 01, luật an toàn, lời dẫn truyện.
-            </span>
-          </div>
-          <span className="mt-4 inline-flex items-center text-xs font-bold text-primary gap-1">
-            Bắt đầu ngay &rarr;
-          </span>
-        </button>
-
-        <Link
-          href="/teacher/assess"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15)] active:scale-[0.99]"
-        >
-          <div>
-            <div className="mb-4 inline-grid size-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors group-hover:border-primary/30 group-hover:text-primary">
-              <ClipboardCheck className="size-5" aria-hidden />
-            </div>
-            <span className="flex items-center gap-1.5 font-semibold text-sm text-slate-900">
-              Ghi nhận Quan sát (30s)
-            </span>
-            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed">
-              Tích chọn cả lớp một chạm thần tốc, AI tự động phát hiện bé cần quan sát sâu.
-            </span>
-          </div>
-          <span className="mt-4 inline-flex items-center text-xs font-medium text-slate-500 gap-1 transition-colors group-hover:text-primary">
-            Mở checklist &rarr;
-          </span>
-        </Link>
-
-        <button
-          type="button"
-          disabled={quota?.isExceeded}
-          onClick={() => onPick("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}
-          className={cn(
-            "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-300",
-            quota?.isExceeded
-              ? "opacity-60 cursor-not-allowed"
-              : "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15)] active:scale-[0.99]",
-          )}
-        >
-          <div>
-            <div className="mb-4 inline-grid size-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors group-hover:border-primary/30 group-hover:text-primary">
-              <Users className="size-5" aria-hidden />
-            </div>
-            <span className="flex items-center gap-1.5 font-semibold text-sm text-slate-900">
-              Thẻ hoạt động Phụ huynh
-            </span>
-            <span className="mt-1.5 block text-xs text-slate-500 leading-relaxed">
-              Nhiệm vụ 5 phút không màn hình buổi tối cho bé, theo dõi phản hồi realtime.
-            </span>
-          </div>
-          <span className="mt-4 inline-flex items-center text-xs font-medium text-slate-500 gap-1 transition-colors group-hover:text-primary">
-            Soạn thẻ &rarr;
-          </span>
-        </button>
-      </div>
-
-      {/* Danh sách gợi ý câu hỏi dạng pill sạch sẽ với icon sinh động */}
-      <div className="flex flex-wrap justify-center gap-2 pt-2">
-        {SUGGESTIONS.map((s) => {
-          return (
-            <button
-              key={s}
-              type="button"
-              disabled={quota?.isExceeded}
-              onClick={() => onPick(s)}
-              className={cn(
-                "rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 select-none",
-                quota?.isExceeded
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              {s}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {QUICK_ACTIONS.map((action) => {
+          const content = (
+            <>
+              <action.icon className="mb-2 size-4 text-slate-400" aria-hidden />
+              <span className="text-sm font-semibold text-slate-900">{action.title}</span>
+              <span className="text-xs text-slate-500">{action.hint}</span>
+            </>
+          );
+          return "href" in action ? (
+            <Link key={action.title} href={action.href} className={tile}>
+              {content}
+            </Link>
+          ) : (
+            <button key={action.title} type="button" disabled={quota.isExceeded} onClick={() => onPick(action.prompt)} className={tile}>
+              {content}
             </button>
           );
         })}
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-2">
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            disabled={quota.isExceeded}
+            onClick={() => onPick(s)}
+            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-50"
+          >
+            {s}
+          </button>
+        ))}
       </div>
     </div>
   );

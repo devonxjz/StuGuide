@@ -69,7 +69,7 @@ test.describe.serial("Luồng 3 vai trò (acceptance #1-#7)", () => {
     await expect(page.getByRole("heading", { name: /Chào cô Lan/ })).toBeVisible();
     await shot(page, "02-teacher-welcome");
 
-    await page.getByRole("button", { name: /Tạo Kế hoạch & Trò chơi mới/ }).click();
+    await page.getByRole("button", { name: /Soạn trò chơi mới/ }).click();
     await expect(page.getByLabel("Căn cứ pháp lý")).toBeVisible({ timeout: 120_000 });
     await expect(page.getByLabel("Cảnh báo an toàn")).toBeVisible();
     await expect(page.getByText("Bản nháp AI").first()).toBeVisible();

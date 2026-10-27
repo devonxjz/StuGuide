@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
@@ -26,18 +26,11 @@ export function ConversationList({ items, activeId }: { items: ConversationItem[
   };
 
   return (
-    <Card className="border-slate-200/90 bg-white shadow-2xs">
+    <Card className="border-slate-200 bg-white shadow-none">
       <CardHeader className="flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-800">
-          <span>💬</span> Cuộc trò chuyện
-        </CardTitle>
-        <Button
-          size="sm"
-          variant="soft"
-          onClick={() => router.push(newChatUrl())}
-          className="h-7 text-xs font-bold text-primary bg-blue-50 hover:bg-blue-100 border border-blue-200/60 shadow-2xs"
-        >
-          <MessageSquarePlus className="size-3.5" /> Mới
+        <CardTitle className="text-sm font-semibold text-slate-900">Cuộc trò chuyện</CardTitle>
+        <Button size="sm" variant="ghost" onClick={() => router.push(newChatUrl())} className="h-7 px-2 text-xs">
+          <Plus className="size-3.5" /> Mới
         </Button>
       </CardHeader>
       <CardContent className="space-y-0.5 p-2 pt-0">
@@ -47,9 +40,7 @@ export function ConversationList({ items, activeId }: { items: ConversationItem[
             key={c.id}
             className={cn(
               "group flex items-center gap-1 rounded-xl pr-1 transition-all",
-              c.id === activeId
-                ? "bg-blue-50 text-blue-900 ring-1 ring-blue-200 font-bold"
-                : "hover:bg-slate-50 text-slate-700"
+              c.id === activeId ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50"
             )}
           >
             <Link
@@ -57,8 +48,8 @@ export function ConversationList({ items, activeId }: { items: ConversationItem[
               className="min-w-0 flex-1 px-2.5 py-2"
               aria-current={c.id === activeId ? "page" : undefined}
             >
-              <span className="block truncate text-xs font-bold">{c.title}</span>
-              <span className="text-[10px] text-muted-foreground">{formatDateTime(c.updatedAt)}</span>
+              <span className="block truncate text-xs font-medium">{c.title}</span>
+              <span className="text-[10px] text-slate-400">{formatDateTime(c.updatedAt)}</span>
             </Link>
             <button
               type="button"

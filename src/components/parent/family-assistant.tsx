@@ -12,6 +12,7 @@ import { useDeviceQuota } from "@/hooks/use-device-quota";
 import { quotaAwareFetch } from "@/lib/device-quota";
 import { api, ApiError } from "@/lib/api-client";
 import { userMessage } from "@/lib/api-error";
+import { MarkdownText } from "@/components/shared/markdown-text";
 import { messagesToTurns } from "@/lib/message-text";
 import { cn } from "@/lib/utils";
 import type { HomeActivity } from "@/core/schemas/family.schema";
@@ -132,7 +133,11 @@ export function FamilyAssistant({ studentId, childName }: { studentId: string; c
             <div key={m.id} className={cn("space-y-3", m.role === "user" && "flex justify-end")}>
               {m.parts.map((p, i) =>
                 p.type === "text" ? (
-                  p.text.trim() ? <p key={i} className={cn("max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap", m.role === "user" ? "bg-primary text-primary-foreground" : "border bg-card")}>{p.text}</p> : null
+                  !p.text.trim() ? null : m.role === "user" ? (
+                    <p key={i} className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap bg-primary text-primary-foreground">{p.text}</p>
+                  ) : (
+                    <MarkdownText key={i} text={p.text} className="max-w-[85%] rounded-2xl bg-slate-100 px-4 py-2.5 text-sm leading-relaxed text-slate-700" />
+                  )
                 ) : p.type === "data-card" ? (
                   <CardRenderer key={i} data={p.data} />
                 ) : null,

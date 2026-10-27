@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { MarkdownText } from "@/components/shared/markdown-text";
 import type { StuGuideMessage } from "@/types/chat";
 import { CardRenderer } from "./cards/card-renderer";
 
@@ -34,14 +34,11 @@ export function MessageView({ message, restored = false }: { message: StuGuideMe
         {message.parts.map((part, i) => {
           if (part.type === "text") {
             return part.text.trim() ? (
-              <p
+              <MarkdownText
                 key={i}
-                className={cn(
-                  "max-w-[44rem] py-1 text-sm leading-relaxed whitespace-pre-wrap text-slate-800"
-                )}
-              >
-                {part.text}
-              </p>
+                text={part.text}
+                className="max-w-[44rem] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700"
+              />
             ) : null;
           }
           if (part.type === "data-card") return <CardRenderer key={i} data={part.data} restored={restored} />;

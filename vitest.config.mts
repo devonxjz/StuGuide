@@ -17,7 +17,7 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/generated/**"],
       reporter: ["text-summary", "text"],
-      // Ngưỡng tối thiểu cho các module bảo mật quota AI (npm run test:coverage sẽ fail nếu tụt dưới mức này)
+      // Ngưỡng tối thiểu cho các module quota AI và hiển thị câu trả lời AI (npm run test:coverage sẽ fail nếu tụt dưới mức này)
       thresholds: {
         perFile: true,
         "src/server/security/{ai-quota,device-id}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
@@ -26,6 +26,7 @@ export default defineConfig({
         "src/lib/{device-quota,api-client,api-error}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/hooks/use-device-quota.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/{proxy,server/http}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
+        "src/{lib/markdown.ts,components/shared/markdown-text.tsx}": { lines: 80, branches: 80, functions: 80, statements: 80 },
       },
     },
   },

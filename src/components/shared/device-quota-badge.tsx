@@ -1,10 +1,10 @@
 "use client";
 
-import { AlertCircle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useDeviceQuota, type DeviceQuota } from "@/hooks/use-device-quota";
 import { cn } from "@/lib/utils";
 
+/** Số lượt AI dùng thử: màu trung tính khi còn lượt, chỉ đổi màu khi sắp hết hoặc đã hết. */
 export function DeviceQuotaBadge({
   quota: passedQuota,
   className,
@@ -19,16 +19,8 @@ export function DeviceQuotaBadge({
 
   if (q.isExceeded) {
     return (
-      <Badge
-        tone="danger"
-        className={cn(
-          "font-bold shadow-xs animate-pulse flex items-center gap-1.5 py-1 px-3 border-rose-300 text-rose-900 bg-rose-50",
-          className,
-        )}
-        title="Thiết bị của bạn đã đạt giới hạn tối đa 5 lượt làm việc với AI"
-      >
-        <AlertCircle className="size-3.5 shrink-0 text-rose-600" aria-hidden />
-        <span>Quá hạn sử dụng, bạn phải mua thêm lượt</span>
+      <Badge tone="danger" className={cn("font-medium", className)} title="Thiết bị đã dùng hết lượt AI dùng thử">
+        Quá hạn sử dụng, bạn phải mua thêm lượt
       </Badge>
     );
   }
@@ -37,12 +29,11 @@ export function DeviceQuotaBadge({
 
   return (
     <Badge
-      tone={q.remaining <= 1 ? "warning" : "ai"}
-      className={cn("font-semibold flex items-center gap-1.5 py-0.5 px-2.5", className)}
-      title={`Thiết bị đã sử dụng ${q.used}/${q.limit} lượt làm việc với AI`}
+      tone={q.remaining <= 1 ? "warning" : "neutral"}
+      className={cn("font-medium", className)}
+      title={`Đã dùng ${q.used}/${q.limit} lượt AI dùng thử`}
     >
-      <Sparkles className="size-3.5 shrink-0 text-purple-600" aria-hidden />
-      <span>AI: {q.used}/{q.limit} lượt</span>
+      AI: {q.used}/{q.limit} lượt
     </Badge>
   );
 }
