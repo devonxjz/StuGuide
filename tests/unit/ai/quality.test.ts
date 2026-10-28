@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { evaluate, generateWithRubric, type Judge } from "@/ai/quality/refine";
 import { formatCriteria, formatFeedback, type Rubric } from "@/ai/quality/rubric";
-import { collectStrings, homeActivityRubric, lessonPlanRubric, checklistRubric } from "@/ai/quality/rubrics";
+import { collectStrings, homeActivityRubric, lessonPlanRubric, checklistRubric, parentCardRubric } from "@/ai/quality/rubrics";
 import { fenceUntrusted } from "@/ai/prompts/_shared/untrusted";
 import { sampleLessonPlan } from "../../fixtures/lesson-plan";
 
@@ -36,11 +36,26 @@ describe("evaluate: kiểm tra tất định + bộ chấm định tính", () =>
     expect(r2.findings[0].issues).toEqual(["Chưa đạt tiêu chí"]);
   });
 
-  it("bộ chấm lỗi (mạng/API) không làm hỏng luồng: chỉ còn kiểm tra tất định, judged=false", async () => {
+  it("bộ chấm lỗi (mạng/API) không làm hỏng luồng: retry 1 lần rồi báo advisory judge-unavailable, judged=false", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const r = await evaluate(rubric, { text: "rất hay" }, ctx, { judge: async () => Promise.reject(new Error("timeout")) });
-    expect(r.findings).toEqual([]);
+    let calls = 0;
+    const r = await evaluate(rubric, { text: "rất hay" }, ctx, {
+      judge: async () => {
+        calls += 1;
+        return Promise.reject(new Error("timeout"));
+      },
+      judgeRetryDelayMs: 0,
+    });
+    expect(calls).toBe(2);
     expect(r.judged).toBe(false);
+    expect(r.judgeFailed).toBe(true);
+    expect(r.findings).toEqual([
+      {
+        criterionId: "judge-unavailable",
+        severity: "advisory",
+        issues: ["Bộ chấm AI tạm lỗi, các tiêu chí định tính chưa được kiểm tra — cô đọc kỹ trước khi duyệt."],
+      },
+    ]);
     spy.mockRestore();
   });
 
@@ -131,6 +146,28 @@ describe("tiêu chí giáo án (kiểm tra tất định)", () => {
   it("an toàn theo tuổi: cùng giáo án, trẻ 24–36 tháng với hạt nhựa thì vi phạm bắt buộc", async () => {
     const r = await evaluate(lessonPlanRubric, sampleLessonPlan, { ...lpCtx, ageGroup: "24-36m", materials: ["Hạt nhựa"] });
     expect(r.findings.find((f) => f.criterionId === "an-toan-vat-lieu")?.severity).toBe("blocking");
+  });
+
+  it("P1-07: screen-free quét cả objectives, observationCriteria, eqQuestions, teacherTip và gameName của giáo án", async () => {
+    const variants = [
+      { ...sampleLessonPlan, objectives: ["Mở youtube xem cùng nhau"] },
+      { ...sampleLessonPlan, observationCriteria: ["Biết mở youtube xem"] },
+      { ...sampleLessonPlan, eqQuestions: ["Tối nay con mở youtube xem nhé?"] },
+      { ...sampleLessonPlan, procedure: [{ ...sampleLessonPlan.procedure[0], teacherTip: "Cho trẻ mở youtube xem" }] },
+      { ...sampleLessonPlan, gameName: "Trò chơi mở youtube xem" },
+    ];
+    for (const plan of variants) {
+      expect(await deterministic(plan)).toContain("screen-free");
+    }
+    expect(await deterministic(sampleLessonPlan)).toEqual([]);
+  });
+
+  it("P1-07: screen-free quét cả greeting và classSummary của thẻ phụ huynh", async () => {
+    const card = { greeting: "Chào bố mẹ", classSummary: "Hôm nay ở lớp con đã làm gì", missionTitle: "Nhiệm vụ tối nay", duration: 5, eqQuestions: ["Con vui nhất lúc nào?"], adultRole: "Lắng nghe con" };
+    const ids = async (c: typeof card) => (await evaluate(parentCardRubric, c, undefined)).findings.map((f) => f.criterionId);
+    expect(await ids(card)).toEqual([]);
+    expect(await ids({ ...card, greeting: "Chào bố mẹ, tối nay cho con mở youtube xem nhé" })).toContain("screen-free");
+    expect(await ids({ ...card, classSummary: "Hôm nay cô cho xem video bài học" })).toContain("screen-free");
   });
 
   it("checklist: số lượng ngoài 3–5 hoặc trùng nhau là chưa đạt", async () => {

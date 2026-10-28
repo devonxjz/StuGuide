@@ -41,7 +41,16 @@ export interface LessonPlanContext {
   recentGameNames: string[];
 }
 
-const childFacing = (p: LessonPlanOutput) => [p.teacherScript, ...p.preparation, ...p.procedure.map((s) => `${s.title}. ${s.instructions}`), ...p.flashcards.map((f) => f.text)];
+const childFacing = (p: LessonPlanOutput) => [
+  p.gameName,
+  ...p.objectives,
+  p.teacherScript,
+  ...p.preparation,
+  ...p.procedure.map((s) => `${s.title}. ${s.instructions}. ${s.teacherTip}`),
+  ...p.flashcards.map((f) => f.text),
+  ...p.observationCriteria,
+  ...p.eqQuestions,
+];
 
 const lessonPlanCriteria: Criterion<LessonPlanOutput, LessonPlanContext>[] = [
   languageCriterion(),
@@ -50,7 +59,7 @@ const lessonPlanCriteria: Criterion<LessonPlanOutput, LessonPlanContext>[] = [
     id: "an-toan-vat-lieu",
     rule: "BR-002",
     severity: "blocking",
-    description: "Cảnh báo an toàn theo Thông tư 45 bao phủ từng rủi ro của vật liệu với đúng độ tuổi (vật nhỏ gây hóc với trẻ dưới 4 tuổi, mép sắc của đồ tái chế…), mức cảnh báo tương xứng mức rủi ro.",
+    description: "Cảnh báo an toàn theo Thông tư 45 bao phủ từng rủi ro của vật liệu với đúng độ tuổi (vật nhỏ gây hóc với trẻ dưới 4 tuổi, mép sắc của đồ tái chế, nam châm, pin cúc áo, bóng bay, dây dài, hạt nở, dị ứng, vật nóng…), mức cảnh báo tương xứng mức rủi ro.",
     check: (p, ctx) => checkSafetyCoverage(p.safetyWarnings, ctx.materials, ctx.ageGroup),
   },
   {
@@ -200,7 +209,7 @@ export const parentCardRubric: Rubric<ParentCardContent, void> = {
   subject: "một thẻ nhiệm vụ ngắn cô giáo gửi phụ huynh sau bài học",
   criteria: [
     languageCriterion(),
-    screenFreeCriterion((c) => [c.missionTitle, c.adultRole, ...c.eqQuestions]),
+    screenFreeCriterion((c) => [c.greeting, c.classSummary, c.missionTitle, c.adultRole, ...c.eqQuestions]),
     { id: "dung-bai-hoc", severity: "advisory", judged: true, description: "Tóm tắt đúng những gì lớp đã làm trong bài học, tích cực, không bịa hoạt động không có." },
     { id: "khong-danh-gia-rieng", severity: "advisory", judged: true, description: "Viết chung cho cả lớp: không nhắc tên, đánh giá hay so sánh riêng bé nào." },
     { id: "cau-hoi-eq", severity: "advisory", judged: true, description: "Câu hỏi mở, không có đúng/sai, gợi con kể lại cảm xúc và trải nghiệm ở lớp." },
@@ -221,7 +230,7 @@ export const homeActivityRubric: Rubric<HomeActivity, HomeActivityContext> = {
   subject: "một hoạt động ngắn ở nhà do phụ huynh dẫn dắt, cá nhân hóa cho một bé mầm non",
   criteria: [
     languageCriterion(),
-    screenFreeCriterion((a) => [a.title, ...a.materials, ...a.steps, a.eqQuestion, a.parentTip]),
+    screenFreeCriterion((a) => [a.title, a.whyForThisChild, ...a.materials, ...a.steps, a.eqQuestion, a.parentTip]),
     {
       id: "an-toan-tuoi",
       rule: "BR-002",
@@ -229,7 +238,7 @@ export const homeActivityRubric: Rubric<HomeActivity, HomeActivityContext> = {
       description: "Đồ vật an toàn với độ tuổi của bé: trẻ dưới 3 tuổi không dùng vật nhỏ có thể gây hóc; trẻ 3–4 tuổi dùng vật nhỏ phải có người lớn giám sát.",
       check: (a, ctx) =>
         requiredSafetyCoverage(a.materials, ctx.ageGroup ?? "")
-          .filter((r) => r.hazard === "small-object")
+          .filter((r) => ["small-object", "magnet", "button-battery", "expanding-bead"].includes(r.hazard))
           .filter((r) => r.minLevel === "critical" || !/giám sát|cẩn thận|để ý|trông/i.test(`${a.parentTip} ${a.steps.join(" ")}`))
           .map((r) => `"${r.material}": ${r.reason}`),
     },
