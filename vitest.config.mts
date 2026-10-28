@@ -14,7 +14,7 @@ export default defineConfig({
     exclude: ["tests/live/**", "node_modules/**"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.{ts,tsx}"],
+      include: ["src/**/*.{ts,tsx}", "evals/lib/**/*.ts"],
       exclude: ["src/generated/**"],
       reporter: ["text-summary", "text"],
       // Ngưỡng tối thiểu cho các module quota AI và hiển thị câu trả lời AI (npm run test:coverage sẽ fail nếu tụt dưới mức này)
@@ -26,6 +26,7 @@ export default defineConfig({
         "src/lib/{device-quota,api-client,api-error}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/hooks/use-device-quota.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/{proxy,server/http}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
+        "evals/lib/*.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/{lib/markdown.ts,components/shared/markdown-text.tsx}": { lines: 80, branches: 80, functions: 80, statements: 80 },
       },
     },

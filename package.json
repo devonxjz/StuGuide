@@ -16,7 +16,10 @@
     "db:seed": "tsx scripts/seed.ts",
     "setup": "prisma generate && prisma db push && tsx scripts/seed.ts",
     "e2e": "playwright test",
-    "test:live": "vitest run --config vitest.live.config.mts"
+    "test:live": "vitest run --config vitest.live.config.mts",
+    "eval": "tsx evals/run.ts",
+    "eval:light": "tsx evals/run.ts --sample 6",
+    "eval:baseline": "tsx evals/run.ts --update-baseline"
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.284",
