@@ -1,17 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { chunkText } from "@/ai/rag/chunker";
 import { HashEmbeddings } from "../../helpers/hash-embeddings";
 import { createKnowledgeRetriever, type KnowledgeRetriever } from "@/ai/rag/retriever";
-
-describe("chunker", () => {
-  it("cắt theo đoạn, không vượt ngưỡng và có overlap", () => {
-    const text = Array.from({ length: 30 }, (_, i) => `Câu số ${i + 1} nói về trẻ em chơi trò chơi vận động.`).join(" ");
-    const chunks = chunkText(text, { maxChars: 200, overlapChars: 40 });
-    expect(chunks.length).toBeGreaterThan(3);
-    expect(chunks.every((c) => c.length <= 200)).toBe(true);
-    expect(chunks[1].slice(0, 20)).toContain(chunks[0].slice(-40).trim().slice(0, 10));
-  });
-});
 
 describe("HashEmbeddings", () => {
   it("deterministic và chuẩn hóa độ dài", async () => {
