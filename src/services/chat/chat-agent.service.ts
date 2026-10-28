@@ -2,6 +2,7 @@ import { createUIMessageStream } from "ai";
 import type { UIMessageChunk } from "ai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { createStuGuideAgent } from "@/ai/agent/create-agent";
+import { TEACHER_CHAT_LIMITS, type AgentLimits } from "@/ai/agent/limits";
 import { pipeAgentToUi } from "@/ai/stream/agent-to-ui";
 import { buildChatAgentPrompt } from "@/ai/prompts/chat-agent.prompt";
 import { createKnowledgeTools } from "@/ai/tools";
@@ -23,6 +24,8 @@ export interface ChatAgentDeps {
   conversations: ConversationService;
   profiles: ChildProfileService;
   getModel: () => BaseChatModel;
+  /** Trần số lần gọi công cụ và thời gian mỗi lượt (mặc định theo cấu hình chat giáo viên) */
+  limits?: AgentLimits;
 }
 
 export interface ChatRequest {
@@ -37,7 +40,7 @@ export interface ChatRequest {
 export const ERR_NET_MESSAGE = "Hệ thống AI đang bận, cô thử gửi lại giúp mình nhé.";
 
 /** Chatbot điều phối của giáo viên: LangChain agent + công cụ nghiệp vụ + bộ nhớ hội thoại, stream sang AI SDK UI. */
-export function createChatAgentService({ services, repos, retriever, conversations, profiles, getModel }: ChatAgentDeps) {
+export function createChatAgentService({ services, repos, retriever, conversations, profiles, getModel, limits = TEACHER_CHAT_LIMITS }: ChatAgentDeps) {
   return {
     /** Kiểm tra quyền và lưu tin của cô trước khi stream (lỗi quyền trả về HTTP 403 thay vì lỗi trong stream). */
     async createUiStream({ conversationId, message, actor, signal }: ChatRequest): Promise<ReadableStream<UIMessageChunk>> {
@@ -68,6 +71,7 @@ export function createChatAgentService({ services, repos, retriever, conversatio
           const agent = createStuGuideAgent({
             model: getModel(),
             tools: tools as never,
+            limits,
             systemPrompt: buildChatAgentPrompt({
               teacherName: teacher?.fullName ?? "",
               className: cls?.name ?? "chưa được phân công lớp",

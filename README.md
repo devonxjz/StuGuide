@@ -128,7 +128,7 @@ npm run typecheck && npm run lint
 | Realtime | Supabase Realtime | **SSE** trong cùng tiến trình (`server/event-bus.ts`) | Giữ interface `FeedbackEvents`, thay bằng Supabase/LISTEN-NOTIFY (cần khi chạy nhiều instance) |
 | Supabase | Auth, Realtime, pgvector, Storage | **Chưa cần cho prototype.** Nên nối khi cho phụ huynh dùng thật trên iPad của họ: cần DB online, OTP thật, realtime qua nhiều server; dữ liệu trẻ em cần chọn vùng lưu trữ và có đồng ý của phụ huynh (Nghị định 13) | Nối qua các interface sẵn có (`FeedbackEvents`, repository, `InMemoryKnowledgeStore`) |
 | Đăng nhập | Supabase Auth | Mật khẩu scrypt (salt riêng, so sánh thời gian hằng) + cookie phiên ký HMAC có hạn 12 giờ, thu hồi khi đăng xuất; khóa tạm sau 5 lần sai/15 phút; chưa có quên/đổi mật khẩu | Supabase Auth (OTP/magic link); rate limit lưu Redis khi chạy nhiều instance |
-| Kho tri thức | VBHN 01, TT 45 … | **Tóm lược minh họa tự soạn** (đánh dấu `isSummary`), không phải trích nguyên văn | Nạp văn bản gốc đã kiểm định qua `chunker.ts` + embedding |
+| Kho tri thức | VBHN 01, TT 45 … | **Tóm lược minh họa tự soạn** (đánh dấu `isSummary`), không phải trích nguyên văn | Nạp văn bản gốc đã kiểm định rồi chia đoạn + embedding (kho hiện nạp trực tiếp các đoạn soạn sẵn ở `src/data/knowledge-base`) |
 | Flashcard | Ảnh do AI minh họa | Emoji do AI chọn theo nội dung + khung tô màu A4 để in | Gắn model sinh ảnh |
 | Zalo | Gửi qua Zalo | Sao chép nội dung + link riêng từng bé | Zalo OA API |
 | Độ trễ | 2–3 giây | Sinh giáo án thật bằng `gpt-4.1` khoảng 15–20 giây (có stepper; sau 20 giây hiện banner mời gửi lại — ERR-NET-01) | Stream partial object, hoặc dùng model nhanh hơn qua `OPENAI_CHAT_MODEL` |

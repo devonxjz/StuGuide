@@ -5,6 +5,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createStuGuideAgent } from "@/ai/agent/create-agent";
+import { FAMILY_CHAT_LIMITS, type AgentLimits } from "@/ai/agent/limits";
 import { pipeAgentToUi } from "@/ai/stream/agent-to-ui";
 import { buildFamilyAgentPrompt } from "@/ai/prompts/family-agent.prompt";
 import { estimateTokens, HISTORY_TOKEN_BUDGET } from "@/ai/memory/context-builder";
@@ -45,11 +46,14 @@ export function createFamilyAssistantService({
   profiles,
   engine,
   getModel,
+  limits = FAMILY_CHAT_LIMITS,
 }: {
   repos: Repositories;
   profiles: ChildProfileService;
   engine: AiEngine;
   getModel: () => BaseChatModel;
+  /** Trần số lần gọi công cụ và thời gian mỗi lượt (mặc định theo cấu hình chat gia đình) */
+  limits?: AgentLimits;
 }) {
   /**
    * Hoạt động ở nhà đi thẳng tới phụ huynh (không có bước duyệt của cô), nên còn vi phạm luật bắt buộc
@@ -136,6 +140,7 @@ export function createFamilyAssistantService({
           const agent = createStuGuideAgent({
             model: getModel(),
             tools: buildTools(actor, studentId) as never,
+            limits,
             systemPrompt: buildFamilyAgentPrompt({ parentName: parent?.fullName ?? "", childProfile: profile }),
           });
           try {
