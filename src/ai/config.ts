@@ -7,6 +7,17 @@ export interface AiConfig {
   maxRevisions: number;
 }
 
+/**
+ * Model được pin theo snapshot có ngày để hành vi không đổi ngầm khi nhà cung cấp cập nhật.
+ * Nâng version là quyết định có chủ đích: đổi hằng số/biến môi trường, chạy `npm run eval` và so với baseline trước khi merge.
+ */
+export const DEFAULT_CHAT_MODEL = "gpt-4.1-2025-04-14";
+export const DEFAULT_FAST_MODEL = "gpt-4.1-mini-2025-04-14";
+
+const PINNED_MODEL = /-\d{4}-\d{2}-\d{2}$/;
+/** Tên model có hậu tố ngày (snapshot) thì coi là đã pin. */
+export const isPinnedModel = (model: string) => PINNED_MODEL.test(model);
+
 /** Cấu hình AI thật. Không có OPENAI_API_KEY thì báo lỗi rõ ràng, không có chế độ giả lập. */
 export function resolveAiConfig(env: Record<string, string | undefined> = process.env): AiConfig {
   const apiKey = env.OPENAI_API_KEY?.trim();
@@ -15,8 +26,8 @@ export function resolveAiConfig(env: Record<string, string | undefined> = proces
   }
   return {
     apiKey,
-    chatModel: env.OPENAI_CHAT_MODEL ?? "gpt-4.1",
-    fastModel: env.OPENAI_FAST_MODEL ?? "gpt-4.1-mini",
+    chatModel: env.OPENAI_CHAT_MODEL?.trim() || DEFAULT_CHAT_MODEL,
+    fastModel: env.OPENAI_FAST_MODEL?.trim() || DEFAULT_FAST_MODEL,
     embeddingModel: env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
     maxRevisions: resolveMaxRevisions(env),
   };
