@@ -14,7 +14,7 @@ npm run setup                   # prisma generate + tạo SQLite + nạp dữ li
 npm run dev                     # http://localhost:3000
 ```
 
-- **AI luôn là AI thật** (OpenAI qua LangChain). Không có chế độ giả lập; thiếu `OPENAI_API_KEY` thì app báo lỗi rõ ràng. Đổi model qua `OPENAI_CHAT_MODEL`, `OPENAI_FAST_MODEL`, `OPENAI_EMBEDDING_MODEL`.
+- **AI luôn là AI thật** (OpenAI qua LangChain). Không có chế độ giả lập; thiếu `OPENAI_API_KEY` thì app báo lỗi rõ ràng. Đổi model qua `OPENAI_CHAT_MODEL`, `OPENAI_FAST_MODEL`, `OPENAI_EMBEDDING_MODEL`. Model được **pin theo snapshot có ngày** (mặc định `gpt-4.1-2025-04-14`, `gpt-4.1-mini-2025-04-14`); nâng version là quyết định có chủ đích: đổi giá trị, chạy `npm run eval` và so với `evals/baseline.json` trước khi merge. Khi model chính lỗi nhà cung cấp (429/5xx/hết quota), chat tự hạ xuống model nhanh và ghi log `llm_fallback`; các task sáng tạo (soạn giáo án, viết lại, phân tích) báo lỗi thân thiện `ERR-AI-01` thay vì lặng lẽ dùng model yếu hơn.
 - Đăng nhập bằng mật khẩu ở `/login` (bảng tài khoản bên dưới). Không còn lối vào demo một chạm. Dữ liệu demo chỉ tự nạp khi `NODE_ENV` khác `production`.
 
 ## Tài khoản thử nghiệm (mật khẩu chung `stuguide`)

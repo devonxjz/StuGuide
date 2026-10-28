@@ -27,7 +27,7 @@ export default defineConfig({
         "src/hooks/use-device-quota.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/{proxy,server/http}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/ai/agent/{create-agent,limits}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
-        "src/ai/{usage-logger,model-router}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
+        "src/ai/{usage-logger,model-router,resilient-model,config}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/ai/rag/{retrieval-cache,retriever}.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "evals/lib/*.ts": { lines: 80, branches: 80, functions: 80, statements: 80 },
         "src/{lib/markdown.ts,components/shared/markdown-text.tsx}": { lines: 80, branches: 80, functions: 80, statements: 80 },
