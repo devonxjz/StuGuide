@@ -94,3 +94,15 @@ describe("proxy – lớp lọc 1", () => {
     expect(dev["Cache-Control"]).toBeUndefined();
   });
 });
+
+describe("API cron health check (P1-14)", () => {
+  it("cho gọi không cần phiên đúng đường dẫn model-health (route tự xác thực bằng CRON_SECRET)", () => {
+    expect(isPublicApi("/api/v1/cron/model-health")).toBe(true);
+    expect(inspectRequest(facts({ pathname: "/api/v1/cron/model-health", sessionValid: false }))).toEqual({ action: "next" });
+  });
+
+  it.each(["/api/v1/cron/other", "/api/v1/cron/model-health/x", "/api/v1/cron/model-health2", "/api/v2/cron/model-health", "/api/cron/model-health"])("%s vẫn yêu cầu phiên", (pathname) => {
+    expect(isPublicApi(pathname)).toBe(false);
+    expect(inspectRequest(facts({ pathname, sessionValid: false }))).toMatchObject({ action: "reject", status: 401 });
+  });
+});
