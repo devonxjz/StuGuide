@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { UNTRUSTED_RULE, fenceUntrusted } from "../prompts/_shared/untrusted";
+import { parseWithRepair } from "../structured-repair";
 import type { Judge } from "./refine";
 
 const verdictSchema = z.object({
@@ -30,6 +31,13 @@ export function createLlmJudge(getModel: () => BaseChatModel): Judge {
       .filter(Boolean)
       .join("\n\n");
     const model = getModel().withStructuredOutput(verdictSchema as never, { name: "quality_review", method: "functionCalling" });
-    return verdictSchema.parse(await model.invoke(prompt)).results;
+    const parsed = await parseWithRepair({
+      schema: verdictSchema,
+      invoke: (p) => model.invoke(p),
+      prompt,
+      label: "quality_review",
+      friendlyMessage: "AI chấm chưa đúng định dạng, bấm thử lại",
+    });
+    return parsed.results;
   };
 }

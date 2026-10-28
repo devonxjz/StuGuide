@@ -36,11 +36,26 @@ describe("evaluate: kiểm tra tất định + bộ chấm định tính", () =>
     expect(r2.findings[0].issues).toEqual(["Chưa đạt tiêu chí"]);
   });
 
-  it("bộ chấm lỗi (mạng/API) không làm hỏng luồng: chỉ còn kiểm tra tất định, judged=false", async () => {
+  it("bộ chấm lỗi (mạng/API) không làm hỏng luồng: retry 1 lần rồi báo advisory judge-unavailable, judged=false", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const r = await evaluate(rubric, { text: "rất hay" }, ctx, { judge: async () => Promise.reject(new Error("timeout")) });
-    expect(r.findings).toEqual([]);
+    let calls = 0;
+    const r = await evaluate(rubric, { text: "rất hay" }, ctx, {
+      judge: async () => {
+        calls += 1;
+        return Promise.reject(new Error("timeout"));
+      },
+      judgeRetryDelayMs: 0,
+    });
+    expect(calls).toBe(2);
     expect(r.judged).toBe(false);
+    expect(r.judgeFailed).toBe(true);
+    expect(r.findings).toEqual([
+      {
+        criterionId: "judge-unavailable",
+        severity: "advisory",
+        issues: ["Bộ chấm AI tạm lỗi, các tiêu chí định tính chưa được kiểm tra — cô đọc kỹ trước khi duyệt."],
+      },
+    ]);
     spy.mockRestore();
   });
 

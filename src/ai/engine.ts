@@ -18,6 +18,7 @@ import { getKnowledgeRetriever, type KnowledgeRetriever, type RetrievedChunk } f
 import { routeModel, type TaskType } from "./model-router";
 import { resolveMaxRevisions } from "./config";
 import { createLlmJudge } from "./quality/judge";
+import { parseWithRepair } from "./structured-repair";
 import { generateWithRubric, type Judge } from "./quality/refine";
 import type { Review } from "./quality/rubric";
 import { behaviorRubric, checklistRubric, homeActivityRubric, lessonPlanRubric, parentCardRubric, sectionRewriteRubric } from "./quality/rubrics";
@@ -71,7 +72,8 @@ export function createLangChainEngine({ getModel, retriever, judge, maxRevisions
   const reviewer = judge ?? createLlmJudge(() => getModel("evaluation"));
   const structured = <S extends z.ZodType>(task: TaskType, schema: S, name: string) => {
     const model = getModel(task).withStructuredOutput(schema as never, { name, method: "functionCalling" });
-    return async (prompt: string): Promise<z.output<S>> => schema.parse(await model.invoke(prompt));
+    return async (prompt: string): Promise<z.output<S>> =>
+      parseWithRepair({ schema, invoke: (p) => model.invoke(p), prompt, label: name, friendlyMessage: "AI soạn chưa đúng định dạng, bấm thử lại" });
   };
 
   return {
@@ -168,6 +170,8 @@ export function createLangChainEngine({ getModel, retriever, judge, maxRevisions
         ctx: { ageGroup: args.ageGroup, minutes },
         generate: (revision) => run(composeHomeActivityPrompt({ profile: args.profile, focus: args.focus, minutes, revision })),
         judge: reviewer,
+        // Nội dung đi thẳng tới phụ huynh: bộ chấm lỗi thì không được coi là đạt.
+        failClosedOnJudgeError: true,
         judgeContext: [fenceUntrusted("hồ sơ của bé", args.profile), args.focus ? fenceUntrusted("yêu cầu của bố mẹ", args.focus) : "Bố mẹ không nêu yêu cầu cụ thể.", `Thời gian: khoảng ${minutes} phút.`].join("\n"),
         maxRevisions,
       });
