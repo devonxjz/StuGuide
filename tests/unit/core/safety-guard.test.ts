@@ -38,4 +38,35 @@ describe("SafetyGuard (BR-002): phát hiện rủi ro bắt buộc, KHÔNG tự 
   it("cảnh báo critical đáp ứng cả yêu cầu mức warning", () => {
     expect(checkSafetyCoverage([w("critical", "Hạt nhựa")], ["Hạt nhựa"], "3-4y")).toEqual([]);
   });
+
+  it("P1-06: nam châm và pin cúc áo luôn bắt buộc mức critical ở mọi độ tuổi", () => {
+    for (const age of ["24-36m", "3-4y", "5-6y"]) {
+      expect(requiredSafetyCoverage(["Nam châm"], age)).toEqual([expect.objectContaining({ hazard: "magnet", minLevel: "critical" })]);
+      expect(requiredSafetyCoverage(["Pin cúc áo"], age)).toEqual(expect.arrayContaining([expect.objectContaining({ hazard: "button-battery", minLevel: "critical" })]));
+    }
+  });
+
+  it("P1-06: bóng bay và dây dài: critical với trẻ 24–36 tháng, warning với trẻ lớn hơn", () => {
+    expect(requiredSafetyCoverage(["Bóng bay"], "24-36m")).toEqual([expect.objectContaining({ hazard: "balloon", minLevel: "critical" })]);
+    expect(requiredSafetyCoverage(["Bóng bay"], "5-6y")).toEqual([expect.objectContaining({ hazard: "balloon", minLevel: "warning" })]);
+    expect(requiredSafetyCoverage(["Dây ruy băng"], "24-36m")).toEqual([expect.objectContaining({ hazard: "long-cord", minLevel: "critical" })]);
+    expect(requiredSafetyCoverage(["Dây ruy băng"], "5-6y")).toEqual([expect.objectContaining({ hazard: "long-cord", minLevel: "warning" })]);
+  });
+
+  it("P1-06: hạt nở: critical dưới 4 tuổi, warning với trẻ lớn hơn", () => {
+    expect(requiredSafetyCoverage(["Hạt nở"], "24-36m")).toEqual(expect.arrayContaining([expect.objectContaining({ hazard: "expanding-bead", minLevel: "critical" })]));
+    expect(requiredSafetyCoverage(["Hạt nở"], "5-6y")).toEqual(expect.arrayContaining([expect.objectContaining({ hazard: "expanding-bead", minLevel: "warning" })]));
+  });
+
+  it("P1-06: dị ứng và vật nóng luôn bắt buộc mức warning", () => {
+    expect(requiredSafetyCoverage(["Đậu phộng"], "5-6y")).toEqual([expect.objectContaining({ hazard: "allergen", minLevel: "warning" })]);
+    expect(requiredSafetyCoverage(["Găng tay cao su"], "4-5y")).toEqual([expect.objectContaining({ hazard: "allergen", minLevel: "warning" })]);
+    expect(requiredSafetyCoverage(["Nước nóng"], "5-6y")).toEqual([expect.objectContaining({ hazard: "hot-surface", minLevel: "warning" })]);
+  });
+
+  it("P1-06: thiếu cảnh báo cho nhóm nguy cơ mới thì bị flagged; cảnh báo nhắc đúng vật liệu thì đạt", () => {
+    expect(checkSafetyCoverage([], ["Nam châm"], "5-6y")).toEqual(expect.arrayContaining([expect.stringMatching(/Nam châm/)]) );
+    expect(checkSafetyCoverage([w("critical", "Nam châm", "không dùng nam châm nhỏ")], ["Nam châm"], "5-6y")).toEqual([]);
+    expect(checkSafetyCoverage([w("warning", "Bóng bay", "người lớn thổi và thu mảnh vỡ")], ["Bóng bay"], "5-6y")).toEqual([]);
+  });
 });
