@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:coverage
+
+  # Eval chất lượng AI chế độ nhẹ (mẫu nhỏ). Chỉ chạy khi đã cấu hình secret OPENAI_API_KEY
+  # và PR có đụng tới prompt/AI/eval; so với evals/baseline.json, fail khi điểm giảm quá ngưỡng.
+  eval-light:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request' && vars.EVAL_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changes
+        run: |
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -qE '^(src/ai/|src/core/guardrails/|evals/)'; then echo "ai=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.changes.outputs.ai == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.changes.outputs.ai == 'true'
+        run: npm ci && npx prisma generate && npm run eval:light
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
