@@ -51,6 +51,15 @@ export function createAssessmentService({ repos, engine }: ServiceDeps, audit: A
       return { checklist, criteria, created: true };
     },
 
+    /** Giáo án của lớp kèm trạng thái quan sát (đã lưu lúc nào), cho trang chọn giáo án ở tab Quan sát 30s. */
+    async listPlansForObservation(actor: Actor, limit = 30) {
+      assertCan(actor.role, "assessment:read");
+      if (!actor.classId) return [];
+      await assertClassAccess(repos, actor, actor.classId);
+      const [plans, savedAt] = await Promise.all([planner.listForClass(actor.classId, limit), repos.assessments.savedAtByPlan(actor.classId)]);
+      return plans.map((plan) => ({ plan, savedAt: savedAt.get(plan.id) ?? null }));
+    },
+
     /** Dữ liệu cho màn hình đánh giá 30 giây. */
     async getSheet(planId: string, actor: Actor) {
       assertCan(actor.role, "assessment:read");
@@ -83,7 +92,8 @@ export function createAssessmentService({ repos, engine }: ServiceDeps, audit: A
 
       // BR-004: ghi chú của cô cũng không được chứa nhãn chẩn đoán (ghi chú đi vào hồ sơ minh chứng và phân tích AI)
       const entries = input.entries.map((e) => ({ ...e, note: e.note ? sanitizeDeep(e.note).value : undefined }));
-      await repos.assessments.saveAssessments(input.checklistId, entries);
+      const planNote = input.planNote ? sanitizeDeep(input.planNote).value : undefined;
+      await repos.assessments.saveAssessments(input.checklistId, entries, planNote);
 
       const history = await repos.assessments.historyByStudent(checklist.classId);
       const existingAlerts = await listAlerts(checklist.classId);

@@ -11,6 +11,8 @@ import { composeHomeActivityPrompt } from "./prompts/home-activity.prompt";
 import { composeLessonPlannerPrompt, type PlanningContext } from "./prompts/lesson-planner.prompt";
 import { composeChecklistPrompt } from "./prompts/checklist-generator.prompt";
 import { composeParentCardPrompt, type ParentCardPromptArgs } from "./prompts/parent-card-writer.prompt";
+import { composeParentEmailPrompt, type ParentEmailPromptArgs } from "./prompts/parent-email-writer.prompt";
+import { generatedEmailsSchema } from "@/core/schemas/parent-email.schema";
 import { composeBehaviorPrompt, type BehaviorPromptArgs } from "./prompts/behavior-analyzer.prompt";
 import { composeSectionRewritePrompt } from "./prompts/section-rewriter.prompt";
 import { fenceUntrusted } from "./prompts/_shared/untrusted";
@@ -54,6 +56,8 @@ export interface AiEngine {
   generateChecklist(plan: Pick<LessonPlanOutput, "gameName" | "objectives">): Promise<Generated<string[]>>;
   generateParentCard(args: Omit<ParentCardPromptArgs, "revision">): Promise<Generated<ParentCardContent>>;
   analyzeBehavior(args: Omit<BehaviorPromptArgs, "revision">): Promise<Generated<BehaviorAnalysisOutput>>;
+  /** Thư gửi phụ huynh: mỗi bé một thư riêng theo ghi chú của cô (cô duyệt trước khi gửi nên không chạy vòng chấm). */
+  generateParentEmails(args: ParentEmailPromptArgs): Promise<{ studentId: string; subject: string; body: string }[]>;
   /** Hoạt động ở nhà cá nhân hóa theo hồ sơ của bé (phụ huynh dẫn dắt). */
   generateHomeActivity(args: { profile: string; focus?: string; minutes?: number; ageGroup?: string }): Promise<Generated<HomeActivity>>;
 }
@@ -160,6 +164,11 @@ export function createLangChainEngine({ getModel, retriever, judge, maxRevisions
         judgeContext: `Bài học "${args.plan.gameName}". Mục tiêu:\n${args.plan.objectives.map((o) => `- ${o}`).join("\n")}\nLời dẫn ở lớp: ${args.plan.teacherScript}`,
         maxRevisions,
       });
+    },
+
+    async generateParentEmails(args) {
+      const run = structured("summarization", generatedEmailsSchema, "parent_emails");
+      return (await run(composeParentEmailPrompt(args))).emails;
     },
 
     async generateHomeActivity(args) {

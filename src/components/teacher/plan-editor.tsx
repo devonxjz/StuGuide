@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ClipboardCheck, History, Lock, Pencil, Printer, RefreshCw, Save, Send, Sparkles, X, XCircle } from "lucide-react";
+import { Check, ClipboardCheck, History, Pencil, Printer, RefreshCw, Save, Send, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,7 +145,7 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
         <div>
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
             <StatusBadge status={plan.status} />
-            <Badge tone="ai"><Sparkles aria-hidden /> AI soạn · cô duyệt</Badge>
+            <Badge tone="ai">AI soạn · cô duyệt</Badge>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-balance">{plan.gameName}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -153,17 +153,17 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
           </p>
         </div>
         <Link href={`/teacher/plan/${plan.id}/print`} target="_blank" className="inline-flex h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-semibold hover:bg-muted">
-          <Printer className="size-4" aria-hidden /> In học liệu
+          <Printer /> In học liệu
         </Link>
       </header>
 
       {plan.status === "shared" && (
-        <p className="flex items-center gap-2 rounded-2xl bg-sky-soft px-4 py-3 text-sm font-medium text-sky-strong">
-          <Lock className="size-4" aria-hidden /> Giáo án đã chia sẻ cho phụ huynh nên không thể chỉnh sửa.
+        <p className="flex items-center gap-2 rounded-xl bg-sky-soft px-4 py-3 text-sm font-medium text-sky-strong">
+          Giáo án đã chia sẻ cho phụ huynh nên không thể chỉnh sửa.
         </p>
       )}
-      {notice && <p role="status" className="rounded-2xl bg-primary-soft px-4 py-3 text-sm font-medium text-primary-strong">{notice}</p>}
-      {error && <p role="alert" className="rounded-2xl bg-coral-soft px-4 py-3 text-sm font-medium text-coral-strong">{error}</p>}
+      {notice && <p role="status" className="rounded-xl bg-primary-soft px-4 py-3 text-sm font-medium text-primary-strong">{notice}</p>}
+      {error && <p role="alert" className="rounded-xl bg-coral-soft px-4 py-3 text-sm font-medium text-coral-strong">{error}</p>}
 
       <LegalReferenceBox reference={plan.legalReference} />
       <SafetyAlertBox warnings={plan.safetyWarnings} />
@@ -183,12 +183,12 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
           </CardHeader>
           <CardContent className="space-y-3">
             {rewriting === section && (
-              <div className="space-y-2 rounded-2xl bg-lilac-soft/60 p-3">
+              <div className="space-y-2 rounded-xl bg-lilac-soft/60 p-3">
                 <label className="text-sm font-semibold text-lilac-strong" htmlFor={`ins-${section}`}>Góp ý cho AI (không bắt buộc)</label>
                 <Input id={`ins-${section}`} value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="Ví dụ: ngắn gọn hơn, thêm đồng dao, vui nhộn hơn…" />
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ai" disabled={busy !== null} onClick={() => rewrite(section)}>
-                    <Sparkles /> {busy === `rewrite-${section}` ? "AI đang viết…" : "Viết lại"}
+                  <Button size="sm" disabled={busy !== null} onClick={() => rewrite(section)}>
+                    {busy === `rewrite-${section}` ? "AI đang viết…" : "Viết lại"}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setRewriting(null)}>Hủy</Button>
                 </div>
@@ -223,7 +223,7 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
 
       {history.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><History className="size-4" aria-hidden /> Lịch sử chỉnh sửa</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><History className="size-4 text-slate-400" aria-hidden /> Lịch sử chỉnh sửa</CardTitle></CardHeader>
           <CardContent>
             <ul className="space-y-1.5 text-sm">
               {history.map((v) => (
@@ -238,7 +238,7 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
         </Card>
       )}
 
-      <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-2xl border bg-card/95 p-3 shadow-soft backdrop-blur">
+      <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-end gap-2 rounded-xl border bg-card/95 p-3 backdrop-blur">
         {role === "teacher" && !approved && (
           <>
             <Button variant="outline" onClick={() => setNotice("Chỉnh sửa của cô luôn được tự lưu nháp.")}><Save /> Lưu nháp</Button>
@@ -246,14 +246,14 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
           </>
         )}
         {!approved && (
-          <Button disabled={busy !== null} onClick={approve}><CheckCircle2 /> {busy === "approve" ? "Đang duyệt…" : role === "teacher" ? "Phê duyệt & Tạo Checklist" : "Phê duyệt"}</Button>
+          <Button disabled={busy !== null} onClick={approve}><Check /> {busy === "approve" ? "Đang duyệt…" : role === "teacher" ? "Phê duyệt & Tạo Checklist" : "Phê duyệt"}</Button>
         )}
         {role === "principal" && !approved && plan.status !== "shared" && (
-          <Button variant="danger" disabled={busy !== null} onClick={() => review("request-changes")}><XCircle /> Yêu cầu sửa lại</Button>
+          <Button variant="danger" disabled={busy !== null} onClick={() => review("request-changes")}><X /> Yêu cầu sửa lại</Button>
         )}
         {role === "teacher" && approved && (
-          <Link href={`/teacher/assess/${plan.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-soft">
-            <ClipboardCheck className="size-4" aria-hidden /> {checklist ? "Ghi nhận quan sát" : "Tạo checklist & ghi nhận"}
+          <Link href={`/teacher/assess/${plan.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">
+            <ClipboardCheck /> {checklist ? "Ghi nhận quan sát" : "Tạo checklist & ghi nhận"}
           </Link>
         )}
       </div>
@@ -263,7 +263,7 @@ export function PlanEditor({ initialPlan, versions, role, hasChecklist }: { init
 
 function SectionView({ plan, section }: { plan: PlanDTO; section: EditableSection }) {
   if (section === "gameName") return <p className="text-lg font-semibold">{plan.gameName}</p>;
-  if (section === "teacherScript") return <p className="rounded-2xl bg-lilac-soft/70 p-4 leading-relaxed italic">{plan.teacherScript}</p>;
+  if (section === "teacherScript") return <p className="rounded-xl bg-lilac-soft/70 p-4 leading-relaxed italic">{plan.teacherScript}</p>;
   if (section === "objectives" || section === "preparation")
     return <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed">{plan[section].map((x, i) => <li key={i}>{x}</li>)}</ul>;
   if (section === "procedure") return <PlanBody plan={{ ...plan, objectives: [], preparation: [], teacherScript: "" }} procedureOnly />;
@@ -287,7 +287,7 @@ function SectionForm({ section, value, onChange }: { section: EditableSection; v
     return (
       <div className="space-y-3">
         {steps.map((s, i) => (
-          <div key={i} className="space-y-2 rounded-2xl border p-3">
+          <div key={i} className="space-y-2 rounded-xl border p-3">
             <div className="flex gap-2">
               <Input value={s.title} onChange={(e) => update(i, { title: e.target.value })} aria-label={`Tên bước ${i + 1}`} />
               <Input type="number" min={1} value={s.duration} onChange={(e) => update(i, { duration: Number(e.target.value) })} className="w-24" aria-label={`Thời lượng bước ${i + 1}`} />

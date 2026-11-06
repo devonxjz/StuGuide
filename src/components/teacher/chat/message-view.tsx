@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { FileText } from "lucide-react";
+import { attachmentNameOf, isAttachmentText } from "@/lib/attachments";
 import { MarkdownText } from "@/components/shared/markdown-text";
 import type { StuGuideMessage } from "@/types/chat";
 import { CardRenderer } from "./cards/card-renderer";
@@ -6,12 +8,23 @@ import { CardRenderer } from "./cards/card-renderer";
 /** `restored`: tin nhắn tải lại từ lịch sử → các thẻ cần nạp trạng thái mới nhất từ server. */
 export function MessageView({ message, restored = false }: { message: StuGuideMessage; restored?: boolean }) {
   if (message.role === "user") {
-    const text = message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+    const texts = message.parts.flatMap((p) => (p.type === "text" ? [p.text] : []));
+    // Tài liệu đính kèm chỉ hiện tên tệp (nội dung dài dành cho AI đọc)
+    const files = texts.filter(isAttachmentText).map(attachmentNameOf);
+    const text = texts.filter((t) => !isAttachmentText(t)).join("");
     return (
-      <div className="flex justify-end animate-fade-up">
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-slate-900 px-4 py-2.5 text-sm whitespace-pre-wrap text-white">
-          {text}
-        </p>
+      <div className="flex animate-fade-up flex-col items-end gap-1.5">
+        {files.map((name, i) => (
+          <span key={i} className="inline-flex max-w-[85%] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
+            <FileText className="size-3.5 shrink-0 text-blue-600" aria-hidden />
+            <span className="truncate">{name}</span>
+          </span>
+        ))}
+        {text && (
+          <p className="max-w-[85%] rounded-xl rounded-br-sm bg-accent px-4 py-2.5 text-sm whitespace-pre-wrap text-accent-foreground">
+            {text}
+          </p>
+        )}
       </div>
     );
   }
@@ -37,7 +50,7 @@ export function MessageView({ message, restored = false }: { message: StuGuideMe
               <MarkdownText
                 key={i}
                 text={part.text}
-                className="max-w-[44rem] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700"
+                className="max-w-[44rem] rounded-xl rounded-tl-sm bg-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700"
               />
             ) : null;
           }

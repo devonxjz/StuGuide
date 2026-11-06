@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanString, normalizeInput, readJsonBody } from "@/server/security/input";
+import { cleanString, normalizeInput, readJsonBody, readUploadedFile } from "@/server/security/input";
 
 const req = (body: string | null, headers: Record<string, string> = { "content-type": "application/json" }) =>
   new Request("http://localhost/api/x", { method: "POST", headers, body });
@@ -44,5 +44,43 @@ describe("chuẩn hóa đầu vào – lớp lọc 2", () => {
   it("chuỗi đa byte (tiếng Việt) được đếm theo byte UTF-8", async () => {
     const body = JSON.stringify({ a: "ệ".repeat(40) }); // ~120 byte
     await expect(readJsonBody(req(body), 100)).rejects.toMatchObject({ status: 413 });
+  });
+});
+
+describe("đọc tệp tải lên (multipart)", () => {
+  /** Dựng body multipart thành byte sẵn (giống dữ liệu nhận từ mạng) thay vì stream của FormData */
+  const upload = async (file: File | null, headers: Record<string, string> = {}) => {
+    const form = new FormData();
+    if (file) form.set("file", file);
+    const encoded = new Response(form);
+    const body = Buffer.from(await encoded.arrayBuffer());
+    return new Request("http://localhost/api/chat/attachments", { method: "POST", body, headers: { "content-type": encoded.headers.get("content-type")!, ...headers } });
+  };
+
+  it("đọc được tệp: tên đã làm sạch, MIME bỏ tham số và viết thường", async () => {
+    const r = await readUploadedFile(await upload(new File(["xin chào"], "bài\u200B học.txt", { type: "Audio/WebM;codecs=opus" })), 1024);
+    expect(r.name).toBe("bài học.txt");
+    expect(r.type).toBe("audio/webm");
+    expect(r.bytes.toString()).toBe("xin chào");
+  });
+
+  it("sai kiểu nội dung → 415; không có tệp/tệp rỗng → 400", async () => {
+    const json = new Request("http://localhost/x", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    await expect(readUploadedFile(json, 1024)).rejects.toMatchObject({ status: 415 });
+    await expect(readUploadedFile(await upload(null), 1024)).rejects.toMatchObject({ status: 400 });
+    await expect(readUploadedFile(await upload(new File([], "a.txt")), 1024)).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("quá lớn → 413 dù Content-Length khai gian nhỏ (đếm byte thực tế)", async () => {
+    const big = new File(["x".repeat(10_000)], "big.txt", { type: "text/plain" });
+    await expect(readUploadedFile(await upload(big), 1024)).rejects.toMatchObject({ status: 413 });
+    await expect(readUploadedFile(await upload(big, { "content-length": "10" }), 1024)).rejects.toMatchObject({ status: 413 });
+    const declaredHuge = await upload(new File(["x"], "a.txt"), { "content-length": String(10 * 1024 * 1024) });
+    await expect(readUploadedFile(declaredHuge, 1024)).rejects.toMatchObject({ status: 413 });
+  });
+
+  it("body multipart hỏng → 400", async () => {
+    const broken = new Request("http://localhost/x", { method: "POST", headers: { "content-type": "multipart/form-data; boundary=zzz" }, body: "rác không có ranh giới" });
+    await expect(readUploadedFile(broken, 1024)).rejects.toMatchObject({ status: 400 });
   });
 });

@@ -23,7 +23,7 @@ export function createAssessmentRepo(db: Db) {
         include: { assessments: true },
       }),
 
-    async saveAssessments(checklistId: string, entries: AssessmentEntry[]) {
+    async saveAssessments(checklistId: string, entries: AssessmentEntry[], planNote?: string) {
       await db.$transaction([
         ...entries.map((e) =>
           db.studentAssessment.upsert({
@@ -32,8 +32,14 @@ export function createAssessmentRepo(db: Db) {
             update: { overallRating: e.overallRating, ratings: e.ratings, note: e.note ?? null },
           }),
         ),
-        db.observationChecklist.update({ where: { id: checklistId }, data: { savedAt: new Date() } }),
+        db.observationChecklist.update({ where: { id: checklistId }, data: { savedAt: new Date(), note: planNote ?? null } }),
       ]);
+    },
+
+    /** Trạng thái quan sát của từng giáo án trong lớp: đã lưu lúc nào (null = chưa lưu). */
+    async savedAtByPlan(classId: string): Promise<Map<string, Date | null>> {
+      const rows = await db.observationChecklist.findMany({ where: { classId }, select: { lessonPlanId: true, savedAt: true } });
+      return new Map(rows.map((r) => [r.lessonPlanId, r.savedAt]));
     },
 
     /** Lịch sử đánh giá tổng quát của từng bé (mới → cũ) để dò chuỗi tuần. */

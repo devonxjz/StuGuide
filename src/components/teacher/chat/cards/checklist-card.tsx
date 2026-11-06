@@ -1,15 +1,16 @@
 ﻿import Link from "next/link";
-import { ClipboardCheck, ListChecks } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CardData } from "@/types/chat";
 
 export function ChecklistCard({ data }: { data: Extract<CardData, { kind: "checklist" }> }) {
   return (
-    <Card className="max-w-[44rem] animate-pop-in border-border/80 bg-card shadow-soft">
+    <Card className="max-w-[44rem] animate-pop-in border-border/80 bg-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2.5 text-base font-bold">
           <span className="grid size-7.5 place-items-center rounded-lg bg-sun-soft text-sun-strong">
-            <ListChecks className="size-4" aria-hidden />
+            
           </span>
           Checklist quan sát · {data.gameName}
         </CardTitle>
@@ -29,9 +30,9 @@ export function ChecklistCard({ data }: { data: Extract<CardData, { kind: "check
       <CardFooter className="border-t border-border/70 bg-muted/20">
         <Link
           href={`/teacher/assess/${data.planId}`}
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-sun px-4.5 text-sm font-bold text-white shadow-soft transition-all hover:brightness-105 active:scale-[0.98]"
+          className="inline-flex h-10 items-center gap-2 rounded-xl bg-sun px-4.5 text-sm font-bold text-white transition-all hover:brightness-105"
         >
-          <ClipboardCheck className="size-4" aria-hidden /> Mở bảng đánh giá cả lớp (30s)
+          <ClipboardCheck /> Mở bảng đánh giá cả lớp (30s)
         </Link>
       </CardFooter>
     </Card>

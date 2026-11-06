@@ -29,8 +29,15 @@ export interface FeedbackEvents {
   publishFeedback(cardId: string, stats: FeedbackStats): void;
 }
 
+/** Cổng gửi thư ra ngoài (SMTP ở server; test dùng bản ghi lại). */
+export interface Mailer {
+  send(message: { to: string; subject: string; text: string; html?: string; replyTo?: string }): Promise<void>;
+}
+
 export interface ServiceDeps {
   repos: Repositories;
   engine: AiEngine;
   events: FeedbackEvents;
+  /** null/thiếu = chưa cấu hình SMTP: soạn thư vẫn được, gửi thì báo rõ lý do */
+  mailer?: Mailer | null;
 }

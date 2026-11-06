@@ -19,6 +19,13 @@ export function createStudentRepo(db: Db) {
         include: { checklist: { include: { lessonPlan: true } } },
         orderBy: { checklist: { date: "desc" } },
       }),
+    /** Cả lớp kèm phụ huynh (danh bạ và gửi thư). */
+    listWithParents: (classId: string) =>
+      db.student.findMany({
+        where: { classId },
+        orderBy: { fullName: "asc" },
+        include: { parents: { include: { parent: { select: { id: true, fullName: true, email: true } } } } },
+      }),
     parentLinks: (classId: string) =>
       db.studentParent.findMany({ where: { student: { classId } }, select: { studentId: true, parentId: true } }),
   };

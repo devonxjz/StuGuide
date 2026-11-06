@@ -55,5 +55,17 @@ tests/.tmp/
 .next-e2e/
 
 dev.db
-e2e.db.next-*/
+e2e.db
 taikhoan.txt
+
+# cache
+.cache/
+.next-*/
+.eslintcache
+.turbo/
+.parcel-cache/
+.vite/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

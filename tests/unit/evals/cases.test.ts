@@ -49,7 +49,7 @@ describe("evalCaseListSchema", () => {
     expect(evalCaseListSchema.safeParse([]).success).toBe(false);
     expect(evalCaseListSchema.safeParse([{ ...validCase, id: "x1" }]).success).toBe(false);
     expect(evalCaseListSchema.safeParse([{ ...validCase, extra: 1 }]).success).toBe(false);
-    expect(evalCaseListSchema.safeParse([{ ...validCase, input: { ...validCase.input, materials: [] } }]).success).toBe(false);
+    expect(evalCaseListSchema.safeParse([{ ...validCase, input: { ...validCase.input, topic: "" } }]).success).toBe(false);
     expect(evalCaseListSchema.safeParse([{ ...validCase, expectations: [] }]).success).toBe(false);
   });
 

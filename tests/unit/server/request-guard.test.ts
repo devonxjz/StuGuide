@@ -106,3 +106,38 @@ describe("API cron health check (P1-14)", () => {
     expect(inspectRequest(facts({ pathname, sessionValid: false }))).toMatchObject({ action: "reject", status: 401 });
   });
 });
+
+describe("tải lên tệp (giọng nói, tài liệu)", () => {
+  const multipart = { "content-type": "multipart/form-data; boundary=abc", "content-length": "5000" };
+
+  it.each(["/api/chat/transcribe", "/api/chat/attachments"])("%s nhận multipart, nhưng không nhận JSON", (pathname) => {
+    expect(inspectRequest(facts({ method: "POST", pathname, headers: multipart }))).toEqual({ action: "next" });
+    expect(inspectRequest(facts({ method: "POST", pathname, headers: json }))).toMatchObject({ status: 415 });
+  });
+
+  it("route khác vẫn chỉ nhận JSON (multipart bị 415)", () => {
+    expect(inspectRequest(facts({ method: "POST", pathname: "/api/chat", headers: multipart }))).toMatchObject({ status: 415 });
+    expect(inspectRequest(facts({ method: "POST", pathname: "/api/chat/transcribe/x", headers: multipart }))).toMatchObject({ status: 415 });
+  });
+
+  it("giới hạn riêng: ghi âm 5 MB, tài liệu 9 MB; vượt → 413; chưa đăng nhập → 401", () => {
+    expect(bodyLimitFor("/api/chat/transcribe")).toBe(5 * 1024 * 1024);
+    expect(bodyLimitFor("/api/chat/attachments")).toBe(9 * 1024 * 1024);
+    const big = { ...multipart, "content-length": String(6 * 1024 * 1024) };
+    expect(inspectRequest(facts({ method: "POST", pathname: "/api/chat/transcribe", headers: big }))).toMatchObject({ status: 413 });
+    expect(inspectRequest(facts({ method: "POST", pathname: "/api/chat/attachments", headers: big }))).toEqual({ action: "next" });
+    expect(inspectRequest(facts({ method: "POST", pathname: "/api/chat/transcribe", headers: multipart, sessionValid: false }))).toMatchObject({ status: 401 });
+  });
+
+  it("vẫn chặn CSRF khi tải lên từ trang khác", () => {
+    const evil = { ...multipart, origin: "https://evil.example" };
+    expect(inspectRequest(facts({ method: "POST", pathname: "/api/chat/transcribe", headers: evil }))).toMatchObject({ status: 403 });
+  });
+
+  it("cho phép micro của chính trang (để ghi âm), vẫn cấm camera/vị trí", () => {
+    const policy = securityHeaders({ dev: false, isApi: false })["Permissions-Policy"];
+    expect(policy).toContain("microphone=(self)");
+    expect(policy).toContain("camera=()");
+    expect(policy).toContain("geolocation=()");
+  });
+});

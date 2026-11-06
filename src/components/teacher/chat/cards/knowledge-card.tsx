@@ -1,4 +1,4 @@
-﻿import { BookOpenCheck } from "lucide-react";
+﻿
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { CardData } from "@/types/chat";
@@ -11,7 +11,7 @@ export function KnowledgeCard({ data }: { data: Extract<CardData, { kind: "knowl
     <Card className="max-w-[44rem] animate-pop-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BookOpenCheck className="size-5 text-primary" aria-hidden /> {data.title}
+          {data.title}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2.5">

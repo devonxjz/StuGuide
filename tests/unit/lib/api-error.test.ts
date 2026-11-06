@@ -24,7 +24,6 @@ describe("userMessage", () => {
     [400, "Tin nhắn không hợp lệ"],
     [403, "Truy cập bị từ chối"],
     [429, "Thao tác quá nhanh, vui lòng thử lại sau 30 giây"],
-    [429, "Quá hạn sử dụng, bạn phải mua thêm lượt"],
   ])("lỗi nghiệp vụ %i: hiện đúng thông điệp server", (status, message) => {
     expect(userMessage(new ApiError("ERR", message, status), fallback)).toBe(message);
   });

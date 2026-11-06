@@ -12,9 +12,9 @@ export const ASSESSMENT_RATINGS = ["excellent", "achieved", "needs_practice"] as
 export type AssessmentRating = (typeof ASSESSMENT_RATINGS)[number];
 
 export const RATING_META: Record<AssessmentRating, { label: string; emoji: string }> = {
-  excellent: { label: "Tốt", emoji: "🌟" },
-  achieved: { label: "Đã đạt", emoji: "✅" },
-  needs_practice: { label: "Cần rèn thêm", emoji: "🌱" },
+  excellent: { label: "Tốt", emoji: "" },
+  achieved: { label: "Đã đạt", emoji: "" },
+  needs_practice: { label: "Cần rèn thêm", emoji: "" },
 };
 
 export const FEEDBACK_RESPONSES = ["completed", "needs_practice"] as const;

@@ -17,6 +17,8 @@ export function cardDigest(card: CardPayload): string {
       return `Checklist quan sát ${card.criteria.length} tiêu chí cho "${card.gameName}" (planId=${card.planId})`;
     case "parent-card":
       return `Thẻ phụ huynh (cardId=${card.cardId}, planId=${card.planId}, trạng thái ${card.status})`;
+    case "parent-emails":
+      return `Thư nháp gửi phụ huynh: ${card.drafts.length} thư (${card.drafts.map((d) => d.studentName).join(", ")}); cô chưa chắc đã bấm gửi`;
     case "feedback-stats":
       return `Phản hồi phụ huynh: ${card.stats.completed}/${card.stats.total} hoàn thành (cardId=${card.cardId})`;
     case "alerts":

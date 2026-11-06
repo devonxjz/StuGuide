@@ -49,7 +49,7 @@ describe("LessonPlannerService", () => {
   });
 
   it("chặn input thiếu (ERR-INPUT-01) trước khi gọi AI", async () => {
-    await expect(svc.lessonPlanner.create({ ...input, materials: [] }, teacher())).rejects.toBeInstanceOf(ZodError);
+    await expect(svc.lessonPlanner.create({ ...input, topic: "" }, teacher())).rejects.toBeInstanceOf(ZodError);
   });
 
   it("phụ huynh không được soạn giáo án", async () => {
@@ -147,6 +147,28 @@ describe("AssessmentService – 30 giây & chuỗi 3 tuần", () => {
     expect(result.alerts[0].weekCount).toBeGreaterThanOrEqual(3);
     expect(result.alerts[0].pattern).not.toMatch(/tự kỷ|tăng động|bệnh/i);
     expect(result.alerts[0].disclaimer).toMatch(/không phải chẩn đoán/i);
+  });
+
+  it("giữ nhận xét chung + từng bé đúng lúc lưu và hiện trạng thái ở danh sách giáo án", async () => {
+    const { plan } = await svc.lessonPlanner.create(input, teacher());
+    await svc.lessonPlanner.approve(plan.id, teacher());
+    const before = (await svc.assessment.listPlansForObservation(teacher())).find((x) => x.plan.id === plan.id);
+    expect(before?.savedAt).toBeNull();
+
+    const { checklist, criteria } = await svc.assessment.createChecklist(plan.id, teacher());
+    const entries = db.ids.studentIds.map((studentId) => ({
+      studentId,
+      overallRating: "achieved" as const,
+      ratings: Object.fromEntries(criteria.map((_, i) => [String(i), "achieved"])) as Record<string, "achieved">,
+      note: studentId === db.ids.huyId ? "Bé chủ động mời bạn cùng chơi." : undefined,
+    }));
+    await svc.assessment.save({ checklistId: checklist.id, entries, planNote: "Cả lớp hào hứng với trò chơi." }, teacher());
+
+    const sheet = await svc.assessment.getSheet(plan.id, teacher());
+    expect(sheet.checklist.note).toBe("Cả lớp hào hứng với trò chơi.");
+    expect(sheet.assessments.find((a) => a.studentId === db.ids.huyId)?.note).toBe("Bé chủ động mời bạn cùng chơi.");
+    const after = (await svc.assessment.listPlansForObservation(teacher())).find((x) => x.plan.id === plan.id);
+    expect(after?.savedAt).toBeInstanceOf(Date);
   });
 
   it("BGH chỉ xem, không được lưu đánh giá", async () => {

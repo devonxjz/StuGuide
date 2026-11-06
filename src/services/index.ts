@@ -5,6 +5,7 @@ import { createAssessmentService } from "./assessment.service";
 import { createParentCardService } from "./parent-card.service";
 import { createFeedbackService } from "./feedback.service";
 import { createReportService } from "./report.service";
+import { createParentEmailService } from "./parent-email.service";
 
 /** Composition root của tầng Application. */
 export function createServices(deps: ServiceDeps) {
@@ -14,8 +15,9 @@ export function createServices(deps: ServiceDeps) {
   const parentCards = createParentCardService(deps, audit, lessonPlanner);
   const feedback = createFeedbackService(deps, audit, parentCards);
   const reports = createReportService(deps, audit);
-  return { audit, lessonPlanner, assessment, parentCards, feedback, reports };
+  const parentEmails = createParentEmailService(deps, audit, lessonPlanner);
+  return { audit, lessonPlanner, assessment, parentCards, feedback, reports, parentEmails };
 }
 
 export type Services = ReturnType<typeof createServices>;
-export type { Actor, FeedbackStats, FeedbackEvents, ServiceDeps } from "./types";
+export type { Actor, FeedbackStats, FeedbackEvents, Mailer, ServiceDeps } from "./types";

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Copy, ExternalLink, Pencil, Radio, Send, Sparkles } from "lucide-react";
+import { Check, Copy, ExternalLink, Pencil, Send, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { api, ApiError } from "@/lib/api-client";
 import { useLiveFeedback } from "@/hooks/use-live-feedback";
 import type { FeedbackStats } from "@/services/types";
+import type { CardEmailSummary } from "@/services/parent-card.service";
 import type { ParentCardContent } from "@/core/schemas/parent-card.schema";
 
 export interface ManagerProps {
@@ -19,6 +20,16 @@ export interface ManagerProps {
   stats: FeedbackStats | null;
   links: { studentName: string; url: string }[];
   candidatePlanId: string | null;
+}
+
+/** Tóm tắt kết quả gửi Gmail để cô biết ai đã nhận, ai chưa có email. */
+function describeEmails(e: CardEmailSummary): string {
+  if (!e.enabled) return "Đã phát hành thẻ. Chưa cấu hình Gmail (SMTP) nên chưa gửi thư; cô có thể sao chép nội dung và link gửi nhóm lớp.";
+  const parts = [`Đã gửi Gmail cho ${e.sent} phụ huynh`];
+  if (e.noEmail) parts.push(`${e.noEmail} chưa có email trong danh bạ`);
+  if (e.failed) parts.push(`${e.failed} gửi không được`);
+  if (e.skipped) parts.push(`${e.skipped} đã nhận trước đó`);
+  return `${parts.join("; ")}.`;
 }
 
 type Filter = "completed" | "support" | "pending";
@@ -33,6 +44,8 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState<Filter>("completed");
+  const [stats, setStats] = useState(initialStats);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setBusy(key);
@@ -50,7 +63,7 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
     return (
       <Card className="mx-auto max-w-lg text-center">
         <CardContent className="space-y-3 p-8">
-          <Sparkles className="mx-auto size-10 text-lilac-strong" aria-hidden />
+          
           <h2 className="text-lg font-bold">Chưa có thẻ nhiệm vụ nào</h2>
           <p className="text-muted-foreground">Thẻ được AI tóm tắt từ giáo án đã phê duyệt.</p>
           {error && <p role="alert" className="rounded-xl bg-coral-soft px-3 py-2 text-sm font-medium text-coral-strong">{error}</p>}
@@ -64,7 +77,7 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
                 })
               }
             >
-              <Sparkles /> {busy === "gen" ? "AI đang soạn…" : "Soạn thẻ từ giáo án đã duyệt gần nhất"}
+              <Wand2 /> {busy === "gen" ? "AI đang soạn…" : "Soạn thẻ từ giáo án đã duyệt gần nhất"}
             </Button>
           ) : (
             <Link href="/teacher" className="inline-flex h-10 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground">Về trợ lý chat để soạn giáo án</Link>
@@ -87,10 +100,11 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
 
   const send = () =>
     run("send", async () => {
-      const res = await api<{ links: { studentName: string; url: string }[] }>(`/api/cards/${card.id}/send`, { method: "POST", body: {} });
+      const res = await api<{ links: { studentName: string; url: string }[]; emails: CardEmailSummary; stats: FeedbackStats }>(`/api/cards/${card.id}/send`, { method: "POST", body: {} });
       setLinks(res.links);
+      setStats(res.stats);
+      setEmailNotice(describeEmails(res.emails));
       setCard({ ...card, status: "sent" });
-      window.location.reload();
     });
 
   const copyAll = async () => {
@@ -113,7 +127,7 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
           <div>
             <div className="mb-1 flex gap-2">
-              <Badge tone="ai"><Sparkles aria-hidden /> AI tóm tắt</Badge>
+              <Badge tone="ai">AI tóm tắt</Badge>
               <Badge tone={sent ? "info" : "neutral"}>{sent ? "Đã gửi" : "Bản nháp"}</Badge>
             </div>
             <CardTitle className="text-lg">Thẻ nhiệm vụ {content.duration} phút · {card.gameName}</CardTitle>
@@ -139,7 +153,7 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
             <>
               <p className="text-muted-foreground">{content.greeting}</p>
               <p className="leading-relaxed">{content.classSummary}</p>
-              <div className="rounded-2xl bg-lilac-soft p-4">
+              <div className="rounded-xl bg-lilac-soft p-4">
                 <p className="mb-2 font-bold text-lilac-strong">{content.missionTitle}</p>
                 <ul className="list-inside list-decimal space-y-1.5">{content.eqQuestions.map((q) => <li key={q}>{q}</li>)}</ul>
                 <p className="mt-3 text-lilac-strong">{content.adultRole}</p>
@@ -147,14 +161,15 @@ export function ParentCardsManager({ card: initialCard, stats: initialStats, lin
             </>
           )}
           {error && <p role="alert" className="rounded-xl bg-coral-soft px-3 py-2 font-medium text-coral-strong">{error}</p>}
+          {emailNotice && <p role="status" className="rounded-xl bg-primary-soft px-3 py-2 font-medium">{emailNotice}</p>}
         </CardContent>
         <CardFooter>
-          {!sent && <Button onClick={send} disabled={busy !== null || editing}><Send /> {busy === "send" ? "Đang gửi…" : "Duyệt & Gửi Zalo/Web"}</Button>}
+          {!sent && <Button onClick={send} disabled={busy !== null || editing}><Send /> {busy === "send" ? "Đang gửi…" : "Duyệt & Gửi qua Gmail"}</Button>}
           <Button variant="outline" onClick={copyAll}>{copied ? <Check /> : <Copy />} {copied ? "Đã sao chép" : "Sao chép nội dung & link nhóm lớp"}</Button>
         </CardFooter>
       </Card>
 
-      {initialStats && sent ? <FeedbackPanel cardId={card.id} initial={initialStats} filter={filter} onFilter={setFilter} links={links} /> : (
+      {stats && sent ? <FeedbackPanel cardId={card.id} initial={stats} filter={filter} onFilter={setFilter} links={links} /> : (
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
             Sau khi gửi, tỷ lệ phụ huynh hoàn thành sẽ cập nhật <b className="text-foreground">trực tiếp</b> tại đây — không cần tải lại trang.
@@ -173,7 +188,7 @@ function FeedbackPanel({ cardId, initial, filter, onFilter, links }: { cardId: s
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Phản hồi phụ huynh</CardTitle>
-          <Badge tone={live ? "success" : "neutral"}><Radio aria-hidden /> {live ? "Trực tiếp" : "Đã tải"}</Badge>
+          <Badge tone={live ? "success" : "neutral"}>{live ? "Trực tiếp" : "Đã tải"}</Badge>
         </CardHeader>
         <CardContent className="flex items-center gap-5">
           <ProgressRing value={stats.completionRate} label="hoàn thành" />

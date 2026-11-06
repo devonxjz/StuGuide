@@ -4,14 +4,9 @@ import { isAppError, isZodError } from "@/core/errors";
 import type { Role } from "@/core/constants/status";
 import type { Actor } from "@/services/types";
 import { getContainer, type Container } from "./container";
-import { resolveSession, SESSION_COOKIE, type Session } from "./session";
+import { CLASS_COOKIE, resolveSession, SESSION_COOKIE, type Session } from "./session";
 import { readJsonBody } from "./security/input";
 import { getRateLimiter, RATE_RULES, type RateBucket } from "./security/rate-limit";
-import { QUOTA_EXCEEDED_MESSAGE } from "@/core/constants/quota";
-import { DEVICE_AI_LIMIT, quotaEntries, toQuotaStatus, type QuotaStatus } from "./security/ai-quota";
-import { DEVICE_COOKIE, verifyDeviceToken } from "./security/device-id";
-import { getSessionSecret } from "./session-token";
-import type { QuotaEntry } from "@/data/repositories/ai-quota.repo";
 import { bodyLimitFor } from "./security/request-guard";
 
 // Thông điệp lỗi validation mặc định bằng tiếng Việt (schema nào có thông điệp riêng thì dùng thông điệp đó)
@@ -46,8 +41,7 @@ type RouteContext = { params: Promise<Record<string, string>> };
 
 /**
  * Lớp 2 của pipeline bảo mật (sau proxy). Thứ tự cố định:
- * phiên (đối chiếu DB) → vai trò → rate limit → [AI] còn lượt? → tham số đường dẫn → query → body (giới hạn byte, chuẩn hóa, Zod)
- * → [AI] trừ lượt → handler → [AI] gắn số lượt còn lại vào header.
+ * phiên (đối chiếu DB) → vai trò → rate limit → tham số đường dẫn → query → body (giới hạn byte, chuẩn hóa, Zod) → handler.
  * Lỗi nghiệp vụ được chuyển thành JSON có mã lỗi; lỗi lạ không lộ chi tiết ra ngoài.
  */
 export function route<
@@ -59,7 +53,7 @@ export function route<
   return async (req: NextRequest, ctx: RouteContext): Promise<Response> => {
     try {
       const c = await getContainer();
-      const session = await resolveSession(req.cookies.get(SESSION_COOKIE)?.value);
+      const session = await resolveSession(req.cookies.get(SESSION_COOKIE)?.value, req.cookies.get(CLASS_COOKIE)?.value);
 
       if (options.auth !== "public") {
         if (!session) return error(401, "ERR-AUTH-01", "Vui lòng đăng nhập");
@@ -73,20 +67,12 @@ export function route<
       const limited = getRateLimiter().hit(`${bucket}:${session?.id ?? clientIp(req)}`, RATE_RULES[bucket]);
       if (!limited.ok) return tooMany(limited.retryAfter);
 
-      // Quota AI dùng thử: hết lượt thì chặn ngay, chưa tốn công đọc body
-      const quota = bucket === "ai" ? aiQuotaEntries(req) : null;
-      if (quota && (await readQuotaStatus(c, quota)).isExceeded) return quotaExceeded();
-
       const params = options.params ? options.params.parse((await ctx?.params) ?? {}) : undefined;
       const query = options.query ? options.query.parse(Object.fromEntries(req.nextUrl.searchParams)) : undefined;
       const body = options.body ? options.body.parse(await readJsonBody(req, bodyLimitFor(req.nextUrl.pathname))) : undefined;
 
-      // Input hợp lệ mới trừ lượt (gửi sai không mất lượt). Không hoàn lượt khi handler lỗi: lúc đó AI có thể đã được gọi.
-      if (quota && !(await c.repos.aiQuota.consume(quota))) return quotaExceeded();
-
       const out = await fn({ req, c, session: session as HandlerArgs<A, PS, BS, QS>["session"], params: params as Out<PS>, body: body as Out<BS>, query: query as Out<QS> });
       const res = out instanceof Response ? out : NextResponse.json(out ?? { ok: true });
-      if (quota) setQuotaHeaders(res.headers, await readQuotaStatus(c, quota));
       return res;
     } catch (e) {
       return toErrorResponse(e);
@@ -101,28 +87,6 @@ export const tooMany = (retryAfter: number) =>
     { error: { code: "ERR-RATE-01", message: `Thao tác quá nhanh, vui lòng thử lại sau ${retryAfter} giây` } },
     { status: 429, headers: { "Retry-After": String(retryAfter) } },
   );
-
-/** Bộ đếm quota AI của request: thiết bị (chỉ khi cookie có chữ ký hợp lệ) + mạng (IP). */
-export function aiQuotaEntries(req: NextRequest): QuotaEntry[] {
-  const deviceId = verifyDeviceToken(req.cookies.get(DEVICE_COOKIE)?.value, getSessionSecret());
-  return quotaEntries(deviceId, clientIp(req));
-}
-
-export async function readQuotaStatus(c: Container, entries: QuotaEntry[]): Promise<QuotaStatus> {
-  return toQuotaStatus(entries, await c.repos.aiQuota.usage(entries.map((entry) => entry.key)));
-}
-
-function setQuotaHeaders(headers: Headers, q: QuotaStatus) {
-  headers.set("X-Device-AI-Limit", String(q.limit));
-  headers.set("X-Device-AI-Remaining", String(q.remaining));
-  headers.set("X-Device-AI-Used", String(q.used));
-}
-
-const quotaExceeded = () => {
-  const res = NextResponse.json({ error: { code: "ERR-QUOTA-EXCEEDED", message: QUOTA_EXCEEDED_MESSAGE } }, { status: 429, headers: { "Retry-After": "86400" } });
-  setQuotaHeaders(res.headers, { limit: DEVICE_AI_LIMIT, used: DEVICE_AI_LIMIT, remaining: 0, isExceeded: true });
-  return res;
-};
 
 /** IP của client (sau reverse proxy tin cậy). Chỉ dùng làm khóa rate limit, không dùng để phân quyền. */
 export function clientIp(req: Request): string {

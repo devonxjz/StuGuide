@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BookOpen, Smartphone } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChildProgressCard } from "@/components/parent/cards/child-progress-card";
@@ -36,7 +36,7 @@ export default async function ChildPage({ params }: { params: Promise<{ id: stri
     <ShortTermProvider studentId={student.id}>
       <div className="space-y-5">
         <header className="flex items-center gap-4">
-          <span className="grid size-20 place-items-center rounded-3xl bg-sun-soft text-5xl shadow-soft" aria-hidden>{student.emoji}</span>
+          <span className="grid size-20 place-items-center rounded-full bg-slate-100 text-3xl font-medium text-slate-600" aria-hidden>{student.fullName.trim().split(" ").pop()?.charAt(0)}</span>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{student.fullName}</h1>
             <p className="text-muted-foreground">{student.className} · {student.ageLabel} · Cô {student.teacherName.replace(/^Cô\s+/, "")}</p>
@@ -46,15 +46,15 @@ export default async function ChildPage({ params }: { params: Promise<{ id: stri
         {latest && (
           <Card className="border-primary/30 bg-primary-soft/40">
             <CardHeader className="gap-1.5">
-              <Badge tone="success" className="w-fit"><BookOpen aria-hidden /> Hôm nay ở lớp con làm gì?</Badge>
+              <Badge tone="success" className="w-fit">Hôm nay ở lớp con làm gì?</Badge>
               <CardTitle className="text-lg">{latest.gameName}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-[15px]">
               <p className="leading-relaxed">{latest.summary}</p>
               {latest.missionTitle && <p className="text-sm text-muted-foreground">Nhiệm vụ {latest.missionTitle.toLowerCase()}</p>}
               {link && (
-                <Link href={`/parent/${link.token}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-soft">
-                  <Smartphone className="size-4" aria-hidden /> Mở thẻ nhiệm vụ 5 phút & phản hồi cô <ArrowRight className="size-4" aria-hidden />
+                <Link href={`/parent/${link.token}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground">
+                  Mở thẻ nhiệm vụ 5 phút & phản hồi cô 
                 </Link>
               )}
             </CardContent>

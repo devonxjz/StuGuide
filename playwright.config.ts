@@ -13,10 +13,10 @@ export default defineConfig({
   projects: [{ name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1360, height: 860 } } }],
   webServer: {
     // DB riêng; AI thật qua OPENAI_API_KEY trong .env.local (Next tự nạp)
-    command: `rm -f e2e.db e2e.db-journal && DATABASE_URL=file:./e2e.db npx prisma db push && next dev -p ${PORT}`,
+    command: `npx prisma db push --force-reset && next dev -p ${PORT}`,
     url: `http://localhost:${PORT}/login`,
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { DATABASE_URL: "file:./e2e.db", NEXT_DIST_DIR: ".next-e2e" },
+    env: { DATABASE_URL: process.env.E2E_DATABASE_URL ?? "", NEXT_DIST_DIR: ".next-e2e" },
   },
 });

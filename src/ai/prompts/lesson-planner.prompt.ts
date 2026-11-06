@@ -34,7 +34,7 @@ export function composeLessonPlannerPrompt({ input, context, legalContext, safet
     `Độ tuổi: ${getAgeLabel(input.ageGroup)}`,
     `Mảng phát triển trọng tâm: ${getAreaLabel(input.developmentArea)}`,
     `Chủ đề: ${input.topic}`,
-    `Học liệu cô có sẵn: ${input.materials.join(", ")}`,
+    input.materials.length ? `Học liệu cô có sẵn: ${input.materials.join(", ")}` : "Cô không nêu học liệu có sẵn: ưu tiên đồ dùng rẻ, dễ kiếm, tái chế an toàn",
     `Thời lượng: ${input.duration} phút · Không gian: ${input.space === "indoor" ? "trong lớp" : "ngoài sân"}`,
     input.stemEnabled && "Cô muốn tích hợp khám phá STEM (trẻ tự đặt câu hỏi, tự thử; cô gợi mở, không giảng giải)",
     input.folkGameEnabled && "Cô muốn lồng ghép trò chơi dân gian / đồng dao Việt Nam (giữ luật chơi cốt lõi, đổi bối cảnh cho hợp chủ đề)",

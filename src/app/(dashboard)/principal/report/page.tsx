@@ -25,7 +25,7 @@ export default async function ReportPage() {
         <PrintButton />
       </div>
 
-      <article className="space-y-6 rounded-3xl border bg-card p-8 shadow-soft print:border-0 print:p-0 print:shadow-none">
+      <article className="space-y-6 rounded-xl border bg-card p-8 print:border-0 print:p-0 print:shadow-none">
         <header className="border-b pb-4">
           <h1 className="text-2xl font-bold text-balance">{report.title}</h1>
           <p className="text-sm text-muted-foreground">Lập lúc {formatDateTime(report.generatedAt)} · Tổng {report.totals.plans} giáo án, {report.totals.approved} đã duyệt</p>

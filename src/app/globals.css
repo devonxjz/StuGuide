@@ -42,7 +42,11 @@
   --shadow-soft: 0 2px 8px -1px rgba(15, 23, 42, 0.05), 0 10px 24px -4px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.05);
   --shadow-float: 0 16px 32px -8px rgba(0, 82, 204, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
   --shadow-colorful: 0 10px 25px -5px rgba(0, 82, 204, 0.18);
-  --radius: 1.125rem;
+  --radius: 0.75rem;
+
+  /* Màu nhấn của nút chính, đổi được trong Cài đặt → Giao diện */
+  --accent: #0f172a;
+  --accent-foreground: #ffffff;
 }
 
 @theme inline {
@@ -55,6 +59,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
@@ -83,6 +89,12 @@
   * {
     border-color: var(--border);
   }
+  html[data-size="small"] {
+    font-size: 93.75%;
+  }
+  html[data-size="large"] {
+    font-size: 106.25%;
+  }
   html {
     -webkit-text-size-adjust: 100%;
     background: #ffffff;
@@ -92,7 +104,7 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.01em;
@@ -249,6 +261,23 @@
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
 }
 
+/* Mảng màu loang ở hero: tự trôi chậm, không theo chuột */
+@keyframes aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(8%, 6%, 0) scale(1.12);
+  }
+  66% {
+    transform: translate3d(-6%, 4%, 0) scale(0.92);
+  }
+}
+.animate-aurora {
+  animation: aurora 18s ease-in-out infinite;
+}
+
 /* Hiện dần khi cuộn tới (gắn data-reveal, component Reveal bật data-shown) */
 [data-reveal] {
   opacity: 0;
@@ -375,6 +404,7 @@
     transition: none;
   }
   .animate-fade-up,
+  .animate-aurora,
   .animate-marquee,
   .typing-caret::after,
   .ai-border::before,
@@ -403,14 +433,155 @@
   margin: 12mm;
 }
 @media print {
+  /* In luôn theo nền trắng, kể cả khi đang dùng giao diện tối */
+  html,
+  html.dark,
   body {
-    background: white;
-    color: black;
+    background: white !important;
+    color: black !important;
+    color-scheme: light;
   }
   .no-print {
     display: none !important;
   }
-  .print-page {
-    break-after: page;
+}
+
+/* Trang học liệu: luôn là "tờ giấy" trắng chữ đen, không theo chủ đề sáng/tối */
+.print-sheet {
+  color-scheme: light;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  background: #fff;
+  color: #111827;
+}
+/* Một trang A4 = 297mm - 2×12mm lề = 273mm; chừa 4mm cho sai số để không tràn sang trang kế */
+.print-page {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+  height: 269mm;
+  overflow: hidden;
+  break-inside: avoid;
+}
+.print-page:not(:last-child) {
+  break-after: page;
+}
+.print-card {
+  flex: 1 1 0;
+  min-height: 0;
+  background: #fff;
+  color: #111827;
+}
+
+/* Dải ảnh màn hình trên landing: chậm hơn dải chữ, hàng dưới chạy ngược; rê chuột thì dừng để xem */
+.animate-marquee-slow {
+  animation: marquee 60s linear infinite;
+}
+.animate-marquee-reverse {
+  animation: marquee 60s linear infinite reverse;
+}
+.group\/gallery:hover .animate-marquee-slow,
+.group\/gallery:hover .animate-marquee-reverse {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-slow,
+  .animate-marquee-reverse {
+    animation: none;
   }
+}
+
+
+/* ───────────── Tuỳ chỉnh giao diện (Cài đặt → Giao diện) ───────────── */
+
+/* Font */
+html[data-font="inter"] {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+html[data-font="serif"] {
+  --font-sans: var(--font-lora), ui-serif, Georgia, serif;
+}
+html[data-font="system"] {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Màu chủ đề: đổi nút chính và màu thương hiệu (vòng tiến độ, liên kết, viền focus) */
+html[data-accent="blue"] { --accent: #0052cc; --primary: #0052cc; --primary-strong: #003da1; --primary-soft: #eff6ff; --ring: rgba(0, 82, 204, 0.35); }
+html[data-accent="violet"] { --accent: #7c3aed; --primary: #7c3aed; --primary-strong: #5b21b6; --primary-soft: #f5f3ff; --ring: rgba(124, 58, 237, 0.35); }
+html[data-accent="pink"] { --accent: #db2777; --primary: #db2777; --primary-strong: #9d174d; --primary-soft: #fdf2f8; --ring: rgba(219, 39, 119, 0.35); }
+html[data-accent="orange"] { --accent: #ea580c; --primary: #ea580c; --primary-strong: #9a3412; --primary-soft: #fff7ed; --ring: rgba(234, 88, 12, 0.35); }
+html[data-accent="green"] { --accent: #16a34a; --primary: #16a34a; --primary-strong: #166534; --primary-soft: #f0fdf4; --ring: rgba(22, 163, 74, 0.35); }
+html[data-accent="brown"] { --accent: #92400e; --primary: #92400e; --primary-strong: #78350f; --primary-soft: #fffbeb; --ring: rgba(146, 64, 14, 0.35); }
+
+/* Chế độ tối: đảo thang slate + nền trắng, tint màu chuyển sang trong suốt để mọi màn hình đều đọc được mà không phải sửa từng component */
+html.dark {
+  color-scheme: dark;
+  --background: #17181a;
+  --foreground: #f1f2f4;
+  --card: #1d1e21;
+  --card-foreground: #f1f2f4;
+  --muted: #1f2023;
+  --muted-foreground: #8a8d96;
+  --border: #2d2f34;
+  --ring: rgba(147, 197, 253, 0.4);
+
+  --accent: #f1f2f4;
+  --accent-foreground: #17181a;
+
+  --color-white: #17181a;
+  --color-slate-50: #1f2023;
+  --color-slate-100: #27282c;
+  --color-slate-200: #34363b;
+  --color-slate-300: #44464c;
+  --color-slate-400: #6b6e76;
+  --color-slate-500: #8a8d96;
+  --color-slate-600: #a6a9b1;
+  --color-slate-700: #c4c6cc;
+  --color-slate-800: #dcdde1;
+  --color-slate-900: #f1f2f4;
+  --color-slate-950: #fafafa;
+
+  --primary: #60a5fa;
+  --primary-strong: #93c5fd;
+  --primary-soft: rgba(59, 130, 246, 0.14);
+  --sun-soft: rgba(245, 158, 11, 0.14);
+  --sun-strong: #fcd34d;
+  --coral-soft: rgba(244, 63, 94, 0.14);
+  --coral-strong: #fda4af;
+  --sky-soft: rgba(14, 165, 233, 0.14);
+  --sky-strong: #7dd3fc;
+  --lilac-soft: rgba(139, 92, 246, 0.14);
+  --lilac-strong: #c4b5fd;
+  --mint-soft: rgba(16, 185, 129, 0.14);
+  --mint-strong: #6ee7b7;
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+html.dark[data-accent="blue"] { --accent: #3b82f6; --accent-foreground: #ffffff; --primary: #60a5fa; }
+html.dark[data-accent="violet"] { --accent: #8b5cf6; --accent-foreground: #ffffff; --primary: #a78bfa; }
+html.dark[data-accent="pink"] { --accent: #ec4899; --accent-foreground: #ffffff; --primary: #f472b6; }
+html.dark[data-accent="orange"] { --accent: #f97316; --accent-foreground: #ffffff; --primary: #fb923c; }
+html.dark[data-accent="green"] { --accent: #22c55e; --accent-foreground: #052e16; --primary: #4ade80; }
+html.dark[data-accent="brown"] { --accent: #b45309; --accent-foreground: #ffffff; --primary: #d97706; }
+
+/* Các tint pastel (nền -50/-100/-200, chữ -600…-900) trong chế độ tối */
+html.dark {
+  --color-blue-50: rgb(59 130 246 / 0.12); --color-blue-100: rgb(59 130 246 / 0.18); --color-blue-200: rgb(59 130 246 / 0.3);
+  --color-blue-600: #60a5fa; --color-blue-700: #60a5fa; --color-blue-800: #93c5fd; --color-blue-900: #93c5fd;
+  --color-sky-50: rgb(14 165 233 / 0.12); --color-sky-100: rgb(14 165 233 / 0.18); --color-sky-200: rgb(14 165 233 / 0.3);
+  --color-sky-600: #38bdf8; --color-sky-700: #38bdf8; --color-sky-800: #7dd3fc; --color-sky-900: #7dd3fc;
+  --color-emerald-50: rgb(16 185 129 / 0.12); --color-emerald-100: rgb(16 185 129 / 0.18); --color-emerald-200: rgb(16 185 129 / 0.3);
+  --color-emerald-700: #34d399; --color-emerald-800: #6ee7b7; --color-emerald-900: #6ee7b7;
+  --color-teal-50: rgb(20 184 166 / 0.12); --color-teal-100: rgb(20 184 166 / 0.18); --color-teal-200: rgb(20 184 166 / 0.3);
+  --color-amber-50: rgb(245 158 11 / 0.12); --color-amber-100: rgb(245 158 11 / 0.18); --color-amber-200: rgb(245 158 11 / 0.3);
+  --color-amber-700: #fbbf24; --color-amber-800: #fcd34d; --color-amber-900: #fcd34d;
+  --color-orange-50: rgb(249 115 22 / 0.12); --color-orange-100: rgb(249 115 22 / 0.18); --color-orange-200: rgb(249 115 22 / 0.3);
+  --color-rose-50: rgb(244 63 94 / 0.12); --color-rose-100: rgb(244 63 94 / 0.18); --color-rose-200: rgb(244 63 94 / 0.3);
+  --color-rose-600: #fb7185; --color-rose-700: #fb7185; --color-rose-800: #fda4af; --color-rose-900: #fda4af;
+  --color-violet-50: rgb(139 92 246 / 0.12); --color-violet-100: rgb(139 92 246 / 0.18); --color-violet-200: rgb(139 92 246 / 0.3);
+  --color-violet-600: #a78bfa; --color-violet-700: #a78bfa; --color-violet-800: #c4b5fd;
+  --color-purple-50: rgb(168 85 247 / 0.12); --color-purple-100: rgb(168 85 247 / 0.18); --color-purple-200: rgb(168 85 247 / 0.3);
+  --color-purple-600: #c084fc; --color-purple-700: #c084fc; --color-purple-800: #d8b4fe; --color-purple-900: #d8b4fe; --color-purple-950: #d8b4fe;
+  --color-indigo-50: rgb(99 102 241 / 0.12); --color-indigo-100: rgb(99 102 241 / 0.18);
+  --color-fuchsia-50: rgb(217 70 239 / 0.12);
+  --color-pink-50: rgb(236 72 153 / 0.12);
 }

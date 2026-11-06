@@ -1,5 +1,6 @@
 ﻿import Link from "next/link";
-import { FileBarChart } from "lucide-react";
+import { FileText } from "lucide-react";
+
 import { ApprovalQueue } from "@/components/principal/approval-queue";
 import { AuditLogTable } from "@/components/principal/audit-log-table";
 import { DevelopmentChart } from "@/components/principal/development-chart";
@@ -22,8 +23,8 @@ export default async function PrincipalPage() {
           <p className="text-sm font-semibold text-primary-strong">{session.schoolName}</p>
           <h1 className="text-2xl font-bold tracking-tight">Bảng điều khiển Ban giám hiệu</h1>
         </div>
-        <Link href="/principal/report" className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 text-base font-semibold text-primary-foreground shadow-soft">
-          <FileBarChart className="size-5" aria-hidden /> Xuất Báo cáo Kiểm định Chất lượng Giáo dục
+        <Link href="/principal/report" className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 text-base font-semibold text-primary-foreground">
+          <FileText /> Xuất Báo cáo Kiểm định Chất lượng Giáo dục
         </Link>
       </header>
 

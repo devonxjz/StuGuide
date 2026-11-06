@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config } from "dotenv";
+
+config({ path: [".env.local", ".env"], quiet: true });
 import { createPrismaClient } from "../src/data/prisma";
 import { seedDemoData } from "../src/data/seed/demo-data";
 

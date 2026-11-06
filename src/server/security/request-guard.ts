@@ -26,15 +26,19 @@ export interface RequestFacts {
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "POST", "PATCH", "DELETE"]);
 const MUTATING = new Set(["POST", "PATCH", "DELETE"]);
 
-/** API không cần phiên: đăng nhập/đăng xuất, quota thiết bị, liên kết riêng của phụ huynh (token trong URL) và cron (tự xác thực bằng CRON_SECRET trong route). */
-const PUBLIC_API = [/^\/api\/auth\/(login|logout)$/, /^\/api\/device\/quota$/, /^\/api\/parent\/[A-Za-z0-9_-]{1,64}$/, /^\/api\/feedback$/, /^\/api\/v1\/cron\/model-health$/];
+/** API không cần phiên: đăng nhập/đăng xuất, liên kết riêng của phụ huynh (token trong URL) và cron (tự xác thực bằng CRON_SECRET trong route). */
+const PUBLIC_API = [/^\/api\/auth\/(login|logout)$/, /^\/api\/parent\/[A-Za-z0-9_-]{1,64}$/, /^\/api\/feedback$/, /^\/api\/v1\/cron\/model-health$/];
 const PROTECTED_PAGES = /^\/(teacher|principal|family)(\/|$)/;
 
 /** Giới hạn body theo route (byte). Phiên học ở nhà chứa tới 500 sự kiện + 60 lượt hội thoại. */
 const BODY_LIMITS: [RegExp, number][] = [
   [/^\/api\/family\/sessions$/, 1024 * 1024],
   [/^\/api\/(chat|family\/chat)$/, 512 * 1024],
+  [/^\/api\/chat\/transcribe$/, 5 * 1024 * 1024],
+  [/^\/api\/chat\/attachments$/, 9 * 1024 * 1024],
 ];
+/** Route nhận tệp tải lên (multipart) thay vì JSON; route tự đọc có giới hạn byte. */
+const UPLOAD_API = /^\/api\/chat\/(transcribe|attachments)$/;
 export const DEFAULT_BODY_LIMIT = 64 * 1024;
 
 export const bodyLimitFor = (pathname: string) => BODY_LIMITS.find(([re]) => re.test(pathname))?.[1] ?? DEFAULT_BODY_LIMIT;
@@ -78,7 +82,8 @@ export function inspectRequest(f: RequestFacts): GuardVerdict {
     if (length > bodyLimitFor(f.pathname)) return reject(413, "ERR-INPUT-413", "Dữ liệu gửi lên quá lớn");
     const hasBody = length > 0 || f.headers.has("transfer-encoding");
     const type = f.headers.get("content-type") ?? "";
-    if (hasBody && !/^application\/json\b/i.test(type)) return reject(415, "ERR-INPUT-01", "Chỉ chấp nhận dữ liệu dạng application/json");
+    const allowedType = UPLOAD_API.test(f.pathname) ? /^multipart\/form-data\b/i : /^application\/json\b/i;
+    if (hasBody && !allowedType.test(type)) return reject(415, "ERR-INPUT-01", "Chỉ chấp nhận dữ liệu dạng application/json");
   }
 
   // 5) Xác thực sớm (chỉ chữ ký + hạn dùng; route đối chiếu DB)
@@ -108,7 +113,7 @@ export function securityHeaders({ dev, isApi }: { dev: boolean; isApi: boolean }
     "X-Frame-Options": "DENY",
     // link phụ huynh chứa token trong URL: không để lộ qua Referer sang trang ngoài
     "Referrer-Policy": "same-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), payment=(), usb=()",
     "Cross-Origin-Opener-Policy": "same-origin",
     ...(dev ? {} : { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" }),
     // dữ liệu cá nhân của trẻ: không để trình duyệt/proxy trung gian lưu cache

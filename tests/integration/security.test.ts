@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { createTestContainer } from "../helpers/test-container";
 import { sessionCookie } from "@/server/session";
@@ -203,7 +203,7 @@ describe("Kiểm tra đầu vào ở route (lớp 2)", () => {
 
 describe("Giới hạn tần suất tác vụ AI", () => {
   it("mỗi tài khoản tối đa 20 yêu cầu AI/phút, sau đó 429 có Retry-After", async () => {
-    // mỗi lượt một IP khác nhau để chỉ đo giới hạn theo tài khoản (trần quota theo IP có test riêng ở device-quota.test.ts)
+    // mỗi lượt một IP khác nhau để chỉ đo giới hạn theo tài khoản
     let n = 0;
     const call = () =>
       familyActivity(req("/api/family/activity", { method: "POST", user: "demo-parent-2", body: { studentId: t.ids.otherStudentId }, headers: { "x-forwarded-for": `192.0.2.${++n}` } }), ctx({}));
@@ -251,8 +251,10 @@ describe("Phiên học ở nhà (sendBeacon)", () => {
 
   it("chắt lọc chỉ chạy khi có dữ liệu mới; gửi lại y nguyên thì không chắt lọc lại", async () => {
     await beacon(payload("sess-once-0001"));
-    await new Promise((r) => setTimeout(r, 30));
-    expect((await t.container.prisma.learningSession.findUnique({ where: { id: "sess-once-0001" } }))?.distilled).toBe(true);
+    // Chắt lọc chạy nền sau response; DB từ xa nên chờ tới khi xong thay vì ngủ cố định
+    await vi.waitFor(async () => {
+      expect((await t.container.prisma.learningSession.findUnique({ where: { id: "sess-once-0001" } }))?.distilled).toBe(true);
+    });
     const again = await t.container.family.sessions.ingest({ id: "demo-parent-1", role: "parent" }, payload("sess-once-0001"));
     expect(again.needsDistill).toBe(false);
     expect(await t.container.family.sessions.distill("sess-once-0001")).toEqual({ skipped: true });

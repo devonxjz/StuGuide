@@ -1,8 +1,7 @@
-// SQLite cho prototype. Khác schema đích (Postgres) ở chỗ:
+// Postgres (Supabase). Một số kiểu vẫn giữ đơn giản so với schema đích:
 //  - enum  -> String (kiểm soát bằng Zod/TS ở src/core/constants/status.ts)
-//  - String[] -> Json (SQLite không có kiểu mảng)
+//  - String[] -> Json
 //  - KnowledgeChunk/pgvector -> vector store trong bộ nhớ (src/ai/rag)
-// Khi lên Postgres: khôi phục enum, String[], và bảng KnowledgeChunk.
 
 generator client {
   provider = "prisma-client"
@@ -10,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model School {
@@ -167,6 +166,8 @@ model ObservationChecklist {
   date         DateTime
   criteria     Json // string[]
   savedAt      DateTime?
+  /// Nhận xét chung của cô về buổi chơi (cùng lúc với hồ sơ từng bé)
+  note         String?
 
   lessonPlan  LessonPlan          @relation(fields: [lessonPlanId], references: [id])
   assessments StudentAssessment[]
@@ -335,12 +336,4 @@ model LearningSession {
   parent  User    @relation(fields: [parentId], references: [id])
 
   @@index([studentId, updatedAt])
-}
-
-/// Bộ đếm lượt AI dùng thử. `key` là "device:<id thiết bị do server cấp>" hoặc "ip:<địa chỉ/dải mạng>".
-/// Lưu DB (không lưu RAM/cookie) để client không xóa được và khởi động lại server không mất.
-model AiQuota {
-  key       String   @id
-  used      Int      @default(0)
-  updatedAt DateTime @updatedAt
 }

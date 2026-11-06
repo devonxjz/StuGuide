@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import Link from "next/link";
+import { Check, X } from "lucide-react";
 import { useState } from "react";
-import { CheckCircle2, Eye, XCircle } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -41,16 +42,16 @@ export function ApprovalQueue({ items }: { items: QueueItem[] }) {
       <CardContent className="space-y-2">
         {list.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Không có giáo án nào đang chờ duyệt 🎉</p>}
         {list.map((p) => (
-          <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3.5">
+          <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
             <div className="min-w-0">
               <p className="truncate font-semibold">{p.gameName}</p>
               <p className="text-xs text-muted-foreground">{p.className} · {p.teacherName}</p>
               <div className="mt-1"><StatusBadge status="needs_review" /></div>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <Link href={`/teacher/plan/${p.id}`} className="inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold hover:bg-muted"><Eye className="size-4" aria-hidden /> Xem nhanh</Link>
-              <Button size="sm" disabled={busy === p.id} onClick={() => act(p.id, "approve")}><CheckCircle2 /> Phê duyệt</Button>
-              <Button size="sm" variant="danger" disabled={busy === p.id} onClick={() => act(p.id, "request-changes")}><XCircle /> Yêu cầu sửa lại</Button>
+              <Link href={`/teacher/plan/${p.id}`} className="inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold hover:bg-muted">Xem nhanh</Link>
+              <Button size="sm" disabled={busy === p.id} onClick={() => act(p.id, "approve")}><Check /> Phê duyệt</Button>
+              <Button size="sm" variant="danger" disabled={busy === p.id} onClick={() => act(p.id, "request-changes")}><X /> Yêu cầu sửa lại</Button>
             </div>
           </div>
         ))}

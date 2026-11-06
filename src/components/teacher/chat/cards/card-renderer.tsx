@@ -6,6 +6,7 @@ import { StatsCard } from "./stats-card";
 import { AlertsCard } from "./alerts-card";
 import { PlanListCard } from "./plan-list-card";
 import { KnowledgeCard } from "./knowledge-card";
+import { ParentEmailsCard } from "./parent-emails-card";
 import { NoticeCard } from "./notice-card";
 import { HomeActivityCard } from "@/components/parent/cards/home-activity-card";
 import { ChildProgressCard } from "@/components/parent/cards/child-progress-card";
@@ -19,6 +20,8 @@ export function CardRenderer({ data, restored = false }: { data: CardPayload; re
       return <ChecklistCard data={data} />;
     case "parent-card":
       return <ParentCardCard data={data} restored={restored} />;
+    case "parent-emails":
+      return <ParentEmailsCard data={data} />;
     case "feedback-stats":
       return <StatsCard data={data} />;
     case "alerts":

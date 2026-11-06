@@ -16,12 +16,10 @@ beforeAll(async () => {
 afterAll(async () => prisma.$disconnect());
 
 describe("seed demo data (spec mục 18)", () => {
-  it("có lớp MG nhỡ B1 với bé Trần Gia Huy và cảnh báo 3 tuần", async () => {
+  it("có lớp MG nhỡ B1 với bé Trần Gia Huy; cảnh báo không gắn cứng trong seed mà do AI sinh khi lưu đánh giá", async () => {
     const students = await repos.students.listByClass(ids.classId);
     expect(students.map((s) => s.fullName)).toContain("Trần Gia Huy");
-    const alerts = await repos.assessments.listAlerts(ids.classId);
-    expect(alerts[0].weekCount).toBe(3);
-    expect(alerts[0].student.fullName).toBe("Trần Gia Huy");
+    expect(await repos.assessments.listAlerts(ids.classId)).toEqual([]);
   });
 
   it("có bài mẫu 'Chuyến xe tình bạn' đã chia sẻ", async () => {

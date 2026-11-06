@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AGE_GROUP_VALUES } from "@/core/constants/age-groups";
 import { DEVELOPMENT_AREA_VALUES } from "@/core/constants/development-areas";
 import { PLAN_STATUS_META } from "@/core/constants/status";
+import { emailNoteSchema } from "@/core/schemas/parent-email.schema";
 import { EDITABLE_SECTIONS } from "@/core/schemas/lesson-plan.schema";
 import { AppError, isAppError, isZodError } from "@/core/errors";
 import { fenceUntrusted } from "@/ai/prompts/_shared/untrusted";
@@ -216,6 +217,40 @@ export function createActionTools(ctx: ToolContext) {
     },
   );
 
+  /** Không gửi thay cô: thư ra ngoài không thu hồi được, chỉ gửi khi cô bấm nút trên thẻ (chống prompt injection). */
+  const draftParentEmails = tool(
+    guarded(async (args: { planId?: string; scope: "noted" | "all"; notes: z.infer<typeof emailNoteSchema>[]; overallNote?: string }) => {
+      const { planId, lessonTitle, drafts, mailerReady } = await services.parentEmails.draft(actor, {
+        planId: args.planId,
+        scope: args.scope,
+        notes: args.notes,
+        overallNote: args.overallNote,
+      });
+      const missing = drafts.filter((d) => !d.recipients.some((r) => r.email)).map((d) => d.studentName);
+      const content = [
+        `Đã soạn ${drafts.length} thư riêng cho từng phụ huynh (${drafts.filter((d) => d.kind !== "none").length} bé có ghi chú của cô)${lessonTitle ? `, bài "${lessonTitle}"` : ""}.`,
+        missing.length ? `${missing.length} bé chưa có email phụ huynh trong danh bạ: ${missing.join(", ")}. Cô nhập ở trang "Danh bạ phụ huynh".` : "",
+        mailerReady ? "" : "Hệ thống chưa cấu hình gửi email nên chưa thể gửi.",
+        'Thư CHỈ được gửi khi cô bấm "Gửi" trên thẻ. Tuyệt đối không nói với cô là đã gửi.',
+      ]
+        .filter(Boolean)
+        .join("\n");
+      return [content, { kind: "parent-emails", planId, lessonTitle, drafts, mailerReady, awaiting: "send" }];
+    }),
+    {
+      name: "draft_parent_emails",
+      description:
+        "Soạn email gửi phụ huynh về sinh hoạt/buổi học của bé: mỗi bé một thư riêng, có tiêu đề đầy đủ. Dùng khi cô muốn gửi mail/thông báo cho phụ huynh (cả lớp hoặc một số bé), kèm điều cô ghi nhận: bé làm tốt (good) hoặc cần quan tâm (concern). Đây chỉ SOẠN NHÁP và hiện thẻ để CÔ duyệt rồi tự bấm gửi.",
+      schema: z.object({
+        planId: planIdArg,
+        scope: z.enum(["noted", "all"]).describe("noted: chỉ các bé cô có ghi chú; all: cả lớp (bé không có ghi chú nhận bản cập nhật chung)"),
+        notes: z.array(emailNoteSchema).max(40).describe("Ghi chú của cô theo từng bé; để mảng rỗng nếu cô chỉ muốn gửi cập nhật chung"),
+        overallNote: z.string().max(500).optional().describe("Lời dặn chung cho cả lớp nếu cô có"),
+      }),
+      responseFormat: "content_and_artifact",
+    },
+  );
+
   const getFeedbackStats = tool(
     guarded(async () => {
       const latest = await services.parentCards.latestForClass(actor.classId ?? "");
@@ -311,5 +346,5 @@ export function createActionTools(ctx: ToolContext) {
     },
   );
 
-  return [childProfile, saveMemory, createLessonPlan, rewritePlanSection, approvePlan, generateChecklist, generateParentCard, sendParentCard, getFeedbackStats, analyzeClassBehavior, listRecentPlans];
+  return [childProfile, saveMemory, createLessonPlan, rewritePlanSection, approvePlan, generateChecklist, generateParentCard, sendParentCard, draftParentEmails, getFeedbackStats, analyzeClassBehavior, listRecentPlans];
 }

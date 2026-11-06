@@ -24,11 +24,9 @@ export default async function TeacherHome({ searchParams }: { searchParams: Prom
       })
     : null;
 
-  const [plans, alerts, latest, list, memories] = await Promise.all([
+  const [plans, alerts, memories] = await Promise.all([
     services.lessonPlanner.listForClass(classId, 5),
     services.assessment.listAlerts(classId),
-    services.parentCards.latestForClass(classId),
-    conversations.list(actor),
     conversations.memories(actor),
   ]);
 
@@ -44,12 +42,8 @@ export default async function TeacherHome({ searchParams }: { searchParams: Prom
         />
       </div>
       <TeacherRail
-        cardId={latest?.card.id ?? null}
-        stats={latest?.stats ?? null}
         alerts={alerts.map((a) => ({ id: a.id, studentId: a.studentId, studentName: a.student.fullName, pattern: a.pattern, weekCount: a.weekCount, skillArea: a.skillArea, suggestedActivity: a.suggestedActivity, disclaimer: a.disclaimer }))}
         plans={plans.map((p) => ({ id: p.id, gameName: p.gameName, status: p.status, topic: p.topic, createdAt: p.createdAt.toISOString() }))}
-        conversations={list.map((x) => ({ id: x.id, title: x.title, updatedAt: x.updatedAt.toISOString() }))}
-        activeConversationId={saved?.conversation.id}
         memories={memories.map((m) => ({ id: m.id, content: m.content }))}
       />
     </div>

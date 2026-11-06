@@ -27,9 +27,10 @@ describe("schema đầu vào (lớp lọc 2: định dạng, độ dài, trườ
 
   it("form soạn giáo án: thiếu/sai từng trường đều có thông điệp tiếng Việt; loại trùng học liệu", () => {
     expect(createPlanInputSchema.parse({ ...plan, materials: ["Rổ", "Rổ", "Bóng"] }).materials).toEqual(["Rổ", "Bóng"]);
-    const r = createPlanInputSchema.safeParse({ ...plan, topic: "", materials: [], duration: 17 });
+    const r = createPlanInputSchema.safeParse({ ...plan, topic: "", duration: 17 });
     expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => i.message)).toEqual(expect.arrayContaining(["Vui lòng nhập chủ đề bài dạy", "Vui lòng chọn ít nhất một học liệu", "Thời lượng phải là 15, 20, 25 hoặc 30 phút"]));
+    expect(r.error?.issues.map((i) => i.message)).toEqual(expect.arrayContaining(["Vui lòng nhập chủ đề bài dạy", "Thời lượng phải là 15, 20, 25 hoặc 30 phút"]));
+    expect(createPlanInputSchema.parse({ ...plan, materials: undefined }).materials).toEqual([]); // học liệu không bắt buộc
     expect(createPlanInputSchema.safeParse({ ...plan, topic: "x".repeat(121) }).success).toBe(false);
     expect(createPlanInputSchema.safeParse({ ...plan, materials: Array.from({ length: 16 }, (_, i) => `m${i}`) }).success).toBe(false);
     expect(createPlanInputSchema.safeParse({ ...plan, classNotes: "x".repeat(1001) }).success).toBe(false);

@@ -7,10 +7,10 @@ const TONE = { Tốt: "success", "Đã đạt": "info", "Đang rèn thêm": "war
 /** Mức đạt theo từng mảng phát triển của riêng bé, diễn đạt tích cực (không dán nhãn). */
 export function ChildProgressCard({ data }: { data: Extract<CardData, { kind: "child-progress" }> }) {
   return (
-    <Card className="max-w-[44rem] animate-pop-in bg-white border-slate-200/90 shadow-soft">
+    <Card className="max-w-[44rem] animate-pop-in bg-white border-slate-200/90">
       <CardHeader>
-        <CardTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-          <span>🌟</span> Con đang tiến bộ thế nào?
+        <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+          Con đang tiến bộ thế nào?
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3.5">
@@ -25,7 +25,7 @@ export function ChildProgressCard({ data }: { data: Extract<CardData, { kind: "c
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-slate-100" role="img" aria-label={`${p.label}: ${ok}% hoạt động đã đạt hoặc tốt`}>
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary via-blue-500 to-cyan-400 transition-all duration-500 shadow-2xs"
+                  className="h-full rounded-full bg-primary transition-all duration-500"
                   style={{ width: `${Math.max(ok, 8)}%` }}
                 />
               </div>

@@ -38,6 +38,13 @@ export function createFakeEngine(overrides: Partial<AiEngine> = {}): AiEngine {
         adultRole: "Bố mẹ chỉ cần lắng nghe.",
       });
     },
+    async generateParentEmails({ students, className, dateLabel }) {
+      return students.map((s) => ({
+        studentId: s.id,
+        subject: `[Lớp ${className}] Thông tin buổi học ${dateLabel} của bé ${s.name}`,
+        body: `Kính gửi phụ huynh bé ${s.name},\n\n${s.note ? `Hôm nay cô ghi nhận: ${s.note}` : "Hôm nay lớp sinh hoạt vui vẻ."}\n\nTrân trọng.`,
+      }));
+    },
     async generateHomeActivity({ profile, focus }) {
       return ok({
         title: "Khủng long tìm trứng",

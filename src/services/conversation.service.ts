@@ -1,3 +1,4 @@
+import { isAttachmentText } from "@/lib/attachments";
 import type { BaseMessage } from "@langchain/core/messages";
 import { buildHistoryWindow, type StoredMessage } from "@/ai/memory/context-builder";
 import { sanitizeDeep } from "@/core/guardrails/language-guard";
@@ -26,7 +27,8 @@ export interface TurnContext {
 }
 
 const normalize = (s: string) => s.normalize("NFC").replace(/\s+/g, " ").trim();
-const textOf = (m: StuGuideMessage) => m.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+/** Lời của cô (bỏ phần tài liệu đính kèm để không lấy nội dung tài liệu làm tiêu đề). */
+const textOf = (m: StuGuideMessage) => m.parts.map((p) => (p.type === "text" && !isAttachmentText(p.text) ? p.text : "")).join("").trim();
 
 /** Hội thoại + trí nhớ: lưu bền vững, kiểm tra quyền sở hữu, quản lý ngữ cảnh và tóm tắt cuộn. */
 export function createConversationService({ repos, summarize }: { repos: Repositories; summarize: SummarizeFn }) {

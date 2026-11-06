@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, ExternalLink, Pencil, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, ClipboardCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,12 +60,12 @@ export function PlanCard({ data, restored = false }: { data: Extract<CardData, {
       <CardHeader className="gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="ai">
-            <Sparkles aria-hidden /> AI soạn
+            AI soạn
           </Badge>
           <StatusBadge status={plan.status} />
           {data.violations.length > 0 && (
             <Badge tone="warning">
-              <ShieldCheck aria-hidden /> {data.violations.length} điểm cần cô xem lại
+              {data.violations.length} điểm cần cô xem lại
             </Badge>
           )}
         </div>
@@ -107,17 +107,17 @@ export function PlanCard({ data, restored = false }: { data: Extract<CardData, {
       </CardContent>
       <CardFooter className="gap-2.5 pt-3 border-t border-border/70 bg-muted/20">
         {!approved && (
-          <Button onClick={approve} disabled={busy} variant="primary" className="font-bold shadow-soft">
-            <CheckCircle2 /> {busy ? "Đang duyệt…" : "Phê duyệt & Tạo checklist"}
+          <Button onClick={approve} disabled={busy} variant="primary" className="font-bold">
+            <Check /> {busy ? "Đang duyệt…" : "Phê duyệt & Tạo checklist"}
           </Button>
         )}
         {approved && (
           <>
             <Link
               href={`/teacher/assess/${plan.id}`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-sun px-4 text-sm font-bold text-white shadow-soft transition-all hover:brightness-105 active:scale-[0.98]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-sun px-4 text-sm font-bold text-white transition-all hover:brightness-105"
             >
-              <ClipboardCheck className="size-4" aria-hidden /> Ghi nhận quan sát (30s)
+              <ClipboardCheck /> Ghi nhận quan sát (30s)
             </Link>
             {plan.status === "approved" && (
               <Button
@@ -125,17 +125,16 @@ export function PlanCard({ data, restored = false }: { data: Extract<CardData, {
                 className="border-sky/40 text-sky-strong hover:bg-sky-soft/60 font-semibold"
                 onClick={() => send("Soạn thẻ nhiệm vụ 5 phút cho phụ huynh")}
               >
-                <Users className="text-sky" /> Soạn thẻ phụ huynh
+                <Users /> Soạn thẻ phụ huynh
               </Button>
             )}
           </>
         )}
         <Link
           href={`/teacher/plan/${plan.id}`}
-          className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors shadow-2xs"
+          className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
-          {plan.status === "shared" ? <ExternalLink className="size-4 text-muted-foreground" aria-hidden /> : <Pencil className="size-4 text-muted-foreground" aria-hidden />}
-          Mở chi tiết {plan.status === "shared" ? "" : "& chỉnh sửa"}
+          {plan.status === "shared" ? "Mở chi tiết" : "Mở chi tiết & chỉnh sửa"}
         </Link>
       </CardFooter>
     </Card>

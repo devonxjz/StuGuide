@@ -1,3 +1,4 @@
+import { isAttachmentText } from "@/lib/attachments";
 import { createUIMessageStream } from "ai";
 import type { UIMessageChunk } from "ai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
@@ -65,7 +66,7 @@ export function createChatAgentService({ services, repos, retriever, conversatio
 
           const focus = { planId: focusPlan?.id };
           const tools = [
-            ...createActionTools({ actor, services, repos, focus, profiles, turn: { tainted: false }, remember: async (c) => (await conversations.remember(actor, c)).content }),
+            ...createActionTools({ actor, services, repos, focus, profiles, turn: { tainted: message.parts.some((p) => p.type === "text" && isAttachmentText(p.text)) }, remember: async (c) => (await conversations.remember(actor, c)).content }),
             ...createChatKnowledgeTools(createKnowledgeTools(retriever)),
           ];
           const agent = createStuGuideAgent({

@@ -50,6 +50,7 @@ export default async function AssessPage({ params }: { params: Promise<{ planId:
       <header>
         <p className="text-sm font-semibold text-primary-strong">Ghi nhận quan sát cuối ngày · 30 giây</p>
         <h1 className="text-2xl font-bold tracking-tight text-balance">{sheet.plan.gameName}</h1>
+        <Link href="/teacher/assess" className="mt-1 inline-block text-sm text-muted-foreground hover:text-foreground">← Chọn giáo án khác</Link>
       </header>
       <ChecklistTable
         planId={planId}
@@ -57,6 +58,8 @@ export default async function AssessPage({ params }: { params: Promise<{ planId:
         criteria={sheet.criteria}
         students={sheet.students.map((s) => ({ id: s.id, fullName: s.fullName, avatarEmoji: s.avatarEmoji }))}
         initial={initial}
+        initialPlanNote={sheet.checklist.note ?? ""}
+        savedAt={sheet.checklist.savedAt?.toISOString() ?? null}
         alerts={sheet.alerts.map((a) => ({ id: a.id, studentId: a.studentId, studentName: a.student.fullName, pattern: a.pattern, weekCount: a.weekCount, skillArea: a.skillArea, suggestedActivity: a.suggestedActivity, disclaimer: a.disclaimer }))}
       />
     </div>

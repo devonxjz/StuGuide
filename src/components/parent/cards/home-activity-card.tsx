@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { Home, Lightbulb, Sparkles } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,11 +33,11 @@ export function HomeActivityCard({ data }: { data: Extract<CardData, { kind: "ho
   };
 
   return (
-    <Card className="max-w-[44rem] animate-pop-in bg-white border-blue-200/80 shadow-soft">
+    <Card className="max-w-[44rem] animate-pop-in bg-white border-blue-200/80">
       <CardHeader className="gap-2">
         <div className="flex flex-wrap gap-2">
-          <Badge tone="ai"><Sparkles aria-hidden /> Dành riêng cho bé</Badge>
-          <Badge tone="success"><Home aria-hidden /> {activity.minutes} phút · đồ vật trong nhà</Badge>
+          <Badge tone="ai">Dành riêng cho bé</Badge>
+          <Badge tone="success">{activity.minutes} phút · đồ vật trong nhà</Badge>
         </div>
         <CardTitle className="text-lg">{activity.title}</CardTitle>
         <p className="text-sm text-muted-foreground">{activity.whyForThisChild}</p>
@@ -61,7 +61,7 @@ export function HomeActivityCard({ data }: { data: Extract<CardData, { kind: "ho
           </ul>
         </div>
         <p className="rounded-xl bg-lilac-soft p-3 text-lilac-strong"><b>Hỏi con:</b> {activity.eqQuestion}</p>
-        <p className="flex gap-2 text-muted-foreground"><Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden /> {activity.parentTip}</p>
+        <p className="flex gap-2 text-muted-foreground">{activity.parentTip}</p>
 
         <div className="space-y-2 border-t pt-3">
           <p className="font-semibold">Bé phản ứng thế nào?</p>
@@ -77,7 +77,7 @@ export function HomeActivityCard({ data }: { data: Extract<CardData, { kind: "ho
                 }}
                 className={cn("min-h-11 rounded-xl border px-3.5 text-sm font-medium", reaction === r.emoji ? "border-primary bg-primary-soft text-primary-strong" : "bg-card hover:bg-muted")}
               >
-                {r.emoji} {r.label}
+                {r.label}
               </button>
             ))}
           </div>

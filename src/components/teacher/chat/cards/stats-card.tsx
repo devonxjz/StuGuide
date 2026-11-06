@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { Radio } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressRing } from "@/components/ui/progress-ring";
@@ -16,7 +16,7 @@ export function StatsCard({ data }: { data: Extract<CardData, { kind: "feedback-
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle>Phản hồi của phụ huynh</CardTitle>
         <Badge tone={live ? "success" : "neutral"}>
-          <Radio aria-hidden /> {live ? "Cập nhật trực tiếp" : "Đã tải"}
+          {live ? "Cập nhật trực tiếp" : "Đã tải"}
         </Badge>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-6">

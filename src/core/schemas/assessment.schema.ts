@@ -20,6 +20,8 @@ export const assessmentEntrySchema = z.strictObject({
 
 export const saveAssessmentInputSchema = z.strictObject({
   checklistId: idSchema,
+  /** Nhận xét chung của cô về giáo án/buổi chơi */
+  planNote: z.string().trim().max(1000, "Nhận xét chung tối đa 1000 ký tự").optional(),
   entries: z
     .array(assessmentEntrySchema)
     .min(1, "Chưa có đánh giá nào")

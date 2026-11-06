@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LoaderCircle, Mail, Phone } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+  Phone,
+} from "lucide-react";
+import { DecorKids } from "@/components/landing/illustrations";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { api, ApiError } from "@/lib/api-client";
@@ -20,16 +27,22 @@ export function LoginPanel() {
   const [error, setError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const run = async (key: string, url: string, body: unknown) => {
     if (busy) return;
     setBusy(key);
     setError(null);
     try {
-      const { redirect } = await api<{ redirect: string }>(url, { method: "POST", body });
+      const { redirect } = await api<{ redirect: string }>(url, {
+        method: "POST",
+        body,
+      });
       router.push(redirect);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Có lỗi xảy ra, vui lòng thử lại");
+      setError(
+        e instanceof ApiError ? e.message : "Có lỗi xảy ra, vui lòng thử lại",
+      );
       setBusy(null);
     }
   };
@@ -39,152 +52,159 @@ export function LoginPanel() {
     setPassword(p);
   };
 
+  const demo =
+    mode === "staff"
+      ? [
+          { label: "Cô Lan", username: "lan@hoamai.edu.vn", tone: "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" },
+          { label: "Cô Thu", username: "thu@hoamai.edu.vn", tone: "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100" },
+          { label: "BGH", username: "minh@hoamai.edu.vn", tone: "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100" },
+        ]
+      : [
+          { label: "Mẹ Gia Huy", username: "0900000001", tone: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100" },
+          { label: "Bố Minh Anh", username: "0900000002", tone: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
+        ];
+
   return (
-    <div className="space-y-6 animate-pop-in">
+    <div className="space-y-8 animate-pop-in">
       <div className="text-center">
-        <Logo className="mx-auto w-fit" />
-        <h1 className="mt-6 text-balance text-3xl font-semibold tracking-tight text-slate-900">
-          Chào mừng đến với StuGuide
+        <DecorKids className="mx-auto -mb-1 w-48 animate-bounce-gentle" />
+        <Logo compact className="mx-auto mt-3 w-fit" />
+        <h1 className="mt-5 text-balance text-2xl font-semibold tracking-tight text-slate-900">
+          Đăng nhập
         </h1>
-        <p className="mt-2 text-balance text-slate-500 text-sm">
-          AI hỗ trợ giáo viên & phụ huynh – Trẻ học qua trải nghiệm thật (Screen-Free)
-        </p>
+        <p className="mt-1.5 text-sm text-slate-500">Tiếp tục với StuGuide</p>
       </div>
 
-      <Card className="border-slate-200 bg-white/90 shadow-[0_24px_64px_-24px_rgba(15,23,42,0.18)] backdrop-blur rounded-2xl">
-        <CardContent className="space-y-4 p-6 sm:p-7">
-          <Tabs<Mode>
-            className="w-full"
-            value={mode}
-            onChange={(m) => {
-              setMode(m);
-              setUsername("");
-              setPassword("");
-              setError(null);
-            }}
-            items={[
-              { value: "staff", label: "👩‍🏫 Giáo viên & BGH" },
-              { value: "parent", label: "👨‍👩‍👧 Phụ huynh" },
-            ]}
-          />
+      <div className="space-y-5 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-[0_24px_64px_-24px_rgba(15,23,42,0.18)] backdrop-blur">
+        <Tabs<Mode>
+          className="w-full"
+          value={mode}
+          onChange={(m) => {
+            setMode(m);
+            setUsername("");
+            setPassword("");
+            setError(null);
+          }}
+          items={[
+            { value: "staff", label: "Giáo viên & BGH" },
+            { value: "parent", label: "Phụ huynh" },
+          ]}
+        />
 
-          <form
-            key={mode}
-            className="space-y-4 pt-1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run("login", "/api/auth/login", { username, password });
-            }}
-          >
-            <div>
-              <Label htmlFor="username" className="text-xs font-semibold text-slate-800">
-                {mode === "staff" ? "Email tài khoản" : "Số điện thoại phụ huynh"}
-              </Label>
-              <div className="relative mt-1">
-                {mode === "staff" ? (
-                  <Mail className="absolute top-3 left-3 size-4 text-primary" aria-hidden />
-                ) : (
-                  <Phone className="absolute top-3 left-3 size-4 text-sky" aria-hidden />
-                )}
-                <Input
-                  id="username"
-                  type={mode === "staff" ? "email" : "tel"}
-                  inputMode={mode === "staff" ? "email" : "tel"}
-                  placeholder={mode === "staff" ? "lan@hoamai.edu.vn" : "0900000001"}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  maxLength={254}
-                  required
-                  className="pl-9 bg-slate-50/70 focus:bg-white border-slate-200"
-                  autoComplete="username"
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-semibold text-slate-800">Mật khẩu</Label>
-                <span className="text-[11px] text-muted-foreground">Mặc định: <strong className="text-slate-800">stuguide</strong></span>
-              </div>
-              <div className="relative mt-1">
-                <KeyRound className="absolute top-3 left-3 size-4 text-sun" aria-hidden />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 bg-slate-50/70 focus:bg-white border-slate-200"
-                  autoComplete="current-password"
-                  maxLength={128}
-                  required
-                />
-              </div>
-            </div>
-            <Button
-              type="submit"
-              className="w-full font-bold shadow-colorful transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] bg-gradient-to-r from-primary via-blue-600 to-indigo-600 text-white"
-              size="lg"
-              disabled={busy !== null}
+        <form
+          key={mode}
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run("login", "/api/auth/login", { username, password });
+          }}
+        >
+          <div>
+            <Label
+              htmlFor="username"
+              className="text-sm font-medium text-slate-700"
             >
-              {busy === "login" && <LoaderCircle className="animate-spin" />} Đăng nhập vào StuGuide
-            </Button>
-          </form>
-
-          {/* Khối gợi ý tài khoản demo với các huy hiệu màu sắc sinh động */}
-          <div className="pt-2 border-t border-slate-100 text-xs">
-            <p className="font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-              <span>🎯</span> Chọn nhanh tài khoản mẫu để trải nghiệm:
-            </p>
-            {mode === "staff" ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => quickFill("lan@hoamai.edu.vn")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-all hover:scale-105 hover:bg-blue-100"
-                >
-                  <span>🌸</span> Cô Lan (Lớp Chồi B1)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill("thu@hoamai.edu.vn")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50/80 px-2.5 py-1.5 text-xs font-semibold text-purple-700 transition-all hover:scale-105 hover:bg-purple-100"
-                >
-                  <span>🌼</span> Cô Thu (Lớp Mầm A2)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill("minh@hoamai.edu.vn")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 text-xs font-semibold text-amber-800 transition-all hover:scale-105 hover:bg-amber-100"
-                >
-                  <span>🏛️</span> BGH Thầy Minh
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => quickFill("0900000001")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/80 px-2.5 py-1.5 text-xs font-semibold text-sky-700 transition-all hover:scale-105 hover:bg-sky-100"
-                >
-                  <span>🧸</span> Mẹ Gia Huy (0900000001)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill("0900000002")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/80 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition-all hover:scale-105 hover:bg-emerald-100"
-                >
-                  <span>🚀</span> Bố Minh Anh (0900000002)
-                </button>
-              </div>
-            )}
+              {mode === "staff" ? "Email" : "Số điện thoại"}
+            </Label>
+            <div className="relative">
+              {mode === "staff" ? (
+                <Mail
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-blue-500"
+                  aria-hidden
+                />
+              ) : (
+                <Phone
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sky-500"
+                  aria-hidden
+                />
+              )}
+              <Input
+                id="username"
+                type={mode === "staff" ? "email" : "tel"}
+                inputMode={mode === "staff" ? "email" : "tel"}
+                placeholder={
+                  mode === "staff" ? "lan@hoamai.edu.vn" : "0900000001"
+                }
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                maxLength={254}
+                required
+                className="h-11 rounded-lg border-slate-200 bg-white pl-9"
+                autoComplete="username"
+              />
+            </div>
+          </div>
+          <div>
+            <Label
+              htmlFor="password"
+              className="text-sm font-medium text-slate-700"
+            >
+              Mật khẩu
+            </Label>
+            <div className="relative">
+              <LockKeyhole
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-amber-500"
+                aria-hidden
+              />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-11 rounded-lg border-slate-200 bg-white px-9"
+                autoComplete="current-password"
+                maxLength={128}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ẩn ký tự đã nhập" : "Hiện ký tự đã nhập"}
+                className="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" aria-hidden />
+                ) : (
+                  <Eye className="size-4" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
 
           {error && (
-            <p role="alert" className="rounded-xl bg-coral-soft px-3 py-2 text-sm font-medium text-coral-strong animate-pop-in">
+            <p
+              role="alert"
+              className="text-sm text-coral-strong animate-pop-in"
+            >
               {error}
             </p>
           )}
-        </CardContent>
-      </Card>
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={busy !== null}
+            className="h-11 w-full rounded-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 font-medium text-white shadow-[0_10px_25px_-8px_rgba(79,70,229,0.5)] transition-all hover:brightness-110"
+          >
+            {busy === "login" && <LoaderCircle className="animate-spin" />}
+            Đăng nhập
+          </Button>
+        </form>
+
+        <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-slate-500">
+          <span>Tài khoản mẫu:</span>
+          {demo.map((d) => (
+            <button
+              key={d.username}
+              type="button"
+              onClick={() => quickFill(d.username)}
+              className={`rounded-full border px-2.5 py-1 font-medium transition-colors ${d.tone}`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

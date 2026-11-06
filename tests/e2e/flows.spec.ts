@@ -135,6 +135,7 @@ test.describe.serial("Luồng 3 vai trò (acceptance #1-#7)", () => {
   test("GV: checklist 30 giây → cảnh báo quan sát sâu cho Gia Huy → tạo thẻ phụ huynh", async ({ page }) => {
     await enter(page, "Giáo viên");
     await page.goto("/teacher/assess");
+    await page.getByRole("link", { name: /Đã duyệt|Đã chia sẻ/ }).first().click();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await page.getByRole("button", { name: /Đánh dấu tất cả/ }).click();
     const huy = page.getByRole("row", { name: /Trần Gia Huy/ });

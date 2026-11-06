@@ -55,6 +55,34 @@ describe("ChecklistTable (Màn hình 5 – 30 giây)", () => {
     expect(within(other).getByRole("button", { name: /Đã đạt/ })).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("tick nhiều bé rồi chọn một mức ở đầu cột: áp cho đúng các bé đã tick, giữ ghi chú", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    await user.type(screen.getByRole("row", { name: /Trần Gia Huy/ }).querySelector("input[type=text], input:not([type])")!, "Bé đứng quan sát");
+    await user.click(screen.getByRole("checkbox", { name: "Chọn Trần Gia Huy" }));
+    await user.click(screen.getByRole("checkbox", { name: "Chọn Lê Bảo Châu" }));
+
+    const header = screen.getAllByRole("row")[0];
+    expect(within(header).getByText(/Đánh giá 2 bé đã chọn/)).toBeInTheDocument();
+    await user.click(within(header).getByRole("button", { name: /Tốt/ }));
+
+    for (const name of [/Trần Gia Huy/, /Lê Bảo Châu/]) {
+      expect(within(screen.getByRole("row", { name })).getByRole("button", { name: /Tốt/ })).toHaveAttribute("aria-pressed", "true");
+    }
+    expect(screen.getByRole("row", { name: /Nguyễn Minh Anh/ }).querySelector("[aria-pressed=true]")).toBeNull();
+    expect(screen.getByDisplayValue("Bé đứng quan sát")).toBeInTheDocument();
+    expect(screen.getByText(/Còn 1 bé chưa đánh giá/)).toBeInTheDocument();
+  });
+
+  it("ô tick ở đầu cột chọn/bỏ chọn cả lớp", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    await user.click(screen.getByRole("checkbox", { name: "Chọn tất cả bé" }));
+    expect(screen.getByText(/Đánh giá 3 bé đã chọn/)).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "Chọn tất cả bé" }));
+    expect(screen.queryByText(/bé đã chọn/)).not.toBeInTheDocument();
+  });
+
   it("gửi đúng payload (rating tổng + từng tiêu chí + ghi chú) và hiện cảnh báo trả về", async () => {
     const user = userEvent.setup();
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({ alerts }) });

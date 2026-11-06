@@ -1,5 +1,6 @@
-﻿import { BookOpen, Package, Play, Quote } from "lucide-react";
+﻿
 import { cn } from "@/lib/utils";
+import { BookOpen, Package, Play, Quote } from "lucide-react";
 import type { PlanDTO } from "@/types/chat";
 
 const PHASE = { warmup: { label: "Khởi động", tone: "bg-sun-soft text-sun-strong" }, main: { label: "Chính", tone: "bg-primary-soft text-primary-strong" }, cooldown: { label: "Kết thúc", tone: "bg-sky-soft text-sky-strong" } } as const;
@@ -11,17 +12,17 @@ export function PlanBody({ plan, procedureOnly = false }: { plan: PlanDTO; proce
       {!procedureOnly && (
       <>
       <section>
-        <h4 className="mb-1.5 flex items-center gap-2 font-bold"><BookOpen className="size-4 text-primary" aria-hidden /> Phần 1 · Mục tiêu</h4>
+        <h4 className="mb-1.5 flex items-center gap-2 font-bold"><BookOpen className="size-4 text-slate-400" aria-hidden /> Phần 1 · Mục tiêu</h4>
         <ul className="list-inside list-disc space-y-1 leading-relaxed">{plan.objectives.map((o, i) => <li key={i}>{o}</li>)}</ul>
       </section>
       <section>
-        <h4 className="mb-1.5 flex items-center gap-2 font-bold"><Package className="size-4 text-primary" aria-hidden /> Phần 2 · Chuẩn bị (100% Screen-Free)</h4>
+        <h4 className="mb-1.5 flex items-center gap-2 font-bold"><Package className="size-4 text-slate-400" aria-hidden /> Phần 2 · Chuẩn bị (100% Screen-Free)</h4>
         <ul className="list-inside list-disc space-y-1 leading-relaxed">{plan.preparation.map((o, i) => <li key={i}>{o}</li>)}</ul>
       </section>
       </>
       )}
       <section>
-        <h4 className="mb-1.5 flex items-center gap-2 font-bold"><Play className="size-4 text-primary" aria-hidden /> Phần 3 · Cách chơi & luật chơi</h4>
+        <h4 className="mb-1.5 flex items-center gap-2 font-bold"><Play className="size-4 text-slate-400" aria-hidden /> Phần 3 · Cách chơi & luật chơi</h4>
         <ol className="space-y-2">
           {plan.procedure.map((s, i) => (
             <li key={i} className="rounded-xl border p-3">
@@ -31,14 +32,14 @@ export function PlanBody({ plan, procedureOnly = false }: { plan: PlanDTO; proce
                 <span className="text-xs text-muted-foreground">{s.duration} phút</span>
               </div>
               <p className="leading-relaxed">{s.instructions}</p>
-              <p className="mt-1.5 text-xs text-muted-foreground">💡 {s.teacherTip}</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">Mẹo: {s.teacherTip}</p>
             </li>
           ))}
         </ol>
       </section>
       {!procedureOnly && (
-        <section className="rounded-2xl bg-lilac-soft/70 p-4">
-          <h4 className="mb-1.5 flex items-center gap-2 font-bold text-lilac-strong"><Quote className="size-4" aria-hidden /> Lời dẫn mẫu của cô</h4>
+        <section className="rounded-xl bg-lilac-soft/70 p-4">
+          <h4 className="mb-1.5 flex items-center gap-2 font-bold text-lilac-strong"><Quote className="size-4 text-slate-400" aria-hidden /> Lời dẫn mẫu của cô</h4>
           <p className="leading-relaxed italic">{plan.teacherScript}</p>
         </section>
       )}

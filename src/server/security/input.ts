@@ -9,6 +9,8 @@ export { InputError };
 
 /** Mặc định 64 KB; route cần nhiều hơn (phiên học ở nhà, chat) khai báo riêng. */
 export const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
+/** Phần đệm của multipart (ranh giới, tên trường) ngoài nội dung tệp */
+const MULTIPART_OVERHEAD = 4 * 1024;
 const MAX_DEPTH = 8;
 const MAX_KEYS = 200;
 const MAX_ARRAY = 1000;
@@ -66,8 +68,8 @@ export async function readJsonBody(req: Request, maxBytes = DEFAULT_MAX_BODY_BYT
   return normalizeInput(parsed);
 }
 
-async function readLimited(req: Request, maxBytes: number): Promise<string> {
-  if (!req.body) return "";
+async function readLimitedBytes(req: Request, maxBytes: number): Promise<Buffer> {
+  if (!req.body) return Buffer.alloc(0);
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -81,5 +83,38 @@ async function readLimited(req: Request, maxBytes: number): Promise<string> {
     }
     chunks.push(value);
   }
-  return new TextDecoder("utf-8", { fatal: false }).decode(Buffer.concat(chunks));
+  return Buffer.concat(chunks);
+}
+
+async function readLimited(req: Request, maxBytes: number): Promise<string> {
+  return new TextDecoder("utf-8", { fatal: false }).decode(await readLimitedBytes(req, maxBytes));
+}
+
+export interface UploadedFile {
+  name: string;
+  /** MIME do client khai báo, đã bỏ phần tham số (vd. "audio/webm;codecs=opus" → "audio/webm") */
+  type: string;
+  bytes: Buffer;
+}
+
+/** Đọc một tệp tải lên (multipart/form-data, trường `file`) với giới hạn byte thực tế. */
+export async function readUploadedFile(req: Request, maxBytes: number): Promise<UploadedFile> {
+  if (!/^multipart\/form-data\b/i.test(req.headers.get("content-type") ?? "")) {
+    throw new InputError("Chỉ chấp nhận tệp tải lên dạng multipart/form-data", 415);
+  }
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared > maxBytes + MULTIPART_OVERHEAD) throw new InputError("Tệp quá lớn", 413);
+
+  // Đọc có giới hạn rồi mới phân tích (không để formData() tự đọc không giới hạn)
+  const raw = await readLimitedBytes(req, maxBytes + MULTIPART_OVERHEAD);
+  let form: FormData;
+  try {
+    form = await new Response(new Uint8Array(raw), { headers: { "content-type": req.headers.get("content-type")! } }).formData();
+  } catch {
+    throw new InputError("Tệp tải lên không hợp lệ");
+  }
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) throw new InputError("Chưa chọn tệp");
+  if (file.size > maxBytes) throw new InputError("Tệp quá lớn", 413);
+  return { name: cleanString(file.name).slice(0, 120) || "tệp", type: file.type.split(";")[0].trim().toLowerCase(), bytes: Buffer.from(await file.arrayBuffer()) };
 }

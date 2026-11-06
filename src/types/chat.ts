@@ -1,3 +1,4 @@
+import type { ParentEmailDraft } from "@/core/schemas/parent-email.schema";
 import type { UIMessage } from "ai";
 import type { PlanRecord } from "@/data/repositories";
 import type { FeedbackStats } from "@/services/types";
@@ -43,6 +44,8 @@ export type CardData =
   | { kind: "plan"; planId: string; plan: PlanDTO; violations: string[]; awaiting?: "approve" }
   | { kind: "checklist"; planId: string; gameName: string; checklistId: string; criteria: string[] }
   | { kind: "parent-card"; cardId: string; planId: string; status: string; content: ParentCardContent; awaiting?: "send" }
+  /** Thư soạn sẵn cho phụ huynh; chỉ gửi khi cô bấm Gửi trên thẻ (agent không tự gửi) */
+  | { kind: "parent-emails"; planId: string | null; lessonTitle: string; drafts: ParentEmailDraft[]; mailerReady: boolean; awaiting: "send" }
   | { kind: "feedback-stats"; cardId: string; stats: FeedbackStats; links: { studentName: string; url: string }[] }
   | { kind: "alerts"; alerts: AlertDTO[] }
   | { kind: "plan-list"; plans: PlanSummaryDTO[] }

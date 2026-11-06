@@ -21,8 +21,8 @@ export default async function FamilyHome() {
       </header>
       <div className="grid gap-4 sm:grid-cols-2">
         {kids.map((k) => (
-          <Link key={k.id} href={`/family/child/${k.id}`} className="flex min-h-24 items-center gap-4 rounded-3xl border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary">
-            <span className="grid size-16 place-items-center rounded-2xl bg-sun-soft text-4xl" aria-hidden>{k.emoji}</span>
+          <Link key={k.id} href={`/family/child/${k.id}`} className="flex min-h-24 items-center gap-4 rounded-xl border bg-card p-5 transition-all hover:border-primary">
+            <span className="grid size-16 place-items-center rounded-full bg-slate-100 text-2xl font-medium text-slate-600" aria-hidden>{k.fullName.trim().split(" ").pop()?.charAt(0)}</span>
             <span className="flex-1"><span className="block text-lg font-bold">{k.fullName}</span><span className="text-sm text-muted-foreground">{k.className} · {k.ageLabel}</span></span>
             <ChevronRight className="size-5 text-muted-foreground" aria-hidden />
           </Link>

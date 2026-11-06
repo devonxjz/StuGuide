@@ -1,6 +1,6 @@
 /**
  * Lỗi từ API phía client. Server luôn trả lỗi dạng { error: { code: "ERR-…", message } },
- * nên giao diện hiển thị được đúng thông điệp server (hết lượt AI, bấm quá nhanh, input sai…).
+ * nên giao diện hiển thị được đúng thông điệp server (bấm quá nhanh, input sai…).
  */
 
 export class ApiError extends Error {

@@ -1,10 +1,13 @@
 ﻿import { cn } from "@/lib/utils";
 
-/** Khung điện thoại cho giao diện phụ huynh: trên desktop hiện như máy thật, trên mobile chiếm toàn màn hình. */
+/**
+ * Khung trang cho phụ huynh: co giãn theo màn hình. Điện thoại chiếm toàn màn hình;
+ * máy tính bảng và máy tính hiện một tờ giấy ở giữa (rộng dần tới 42rem), không giả lập khung điện thoại.
+ */
 export function MobileFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="grid min-h-dvh place-items-center bg-[radial-gradient(circle_at_30%_20%,var(--primary-soft),transparent_55%),radial-gradient(circle_at_80%_80%,var(--sun-soft),transparent_50%)] sm:p-6">
-      <div className={cn("w-full bg-background sm:max-w-[420px] sm:overflow-hidden sm:rounded-[2.5rem] sm:border-[10px] sm:border-foreground/90 sm:shadow-2xl", className)}>{children}</div>
+    <div className="min-h-dvh bg-slate-50 sm:px-6 sm:py-8">
+      <div className={cn("mx-auto w-full overflow-hidden bg-background sm:max-w-2xl sm:rounded-3xl sm:border sm:shadow-xl lg:max-w-3xl", className)}>{children}</div>
     </div>
   );
 }

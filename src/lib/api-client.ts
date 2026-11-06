@@ -1,5 +1,4 @@
 import { ApiError, apiErrorFrom } from "./api-error";
-import { syncQuotaFromResponse } from "./device-quota";
 
 export { ApiError };
 
@@ -14,7 +13,6 @@ export async function api<T = unknown>(url: string, init: { method?: string; bod
     headers,
     body: init.body ? JSON.stringify(init.body) : undefined,
   });
-  syncQuotaFromResponse(res);
   if (!res.ok) throw await apiErrorFrom(res);
   return (await res.json().catch(() => ({}))) as T;
 }
@@ -28,7 +26,6 @@ export async function apiStream<R>(url: string, body: unknown, onEvent: (event: 
     "content-type": "application/json",
   };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-  syncQuotaFromResponse(res);
   if (!res.ok || !res.body) throw await apiErrorFrom(res);
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
@@ -48,4 +45,23 @@ export async function apiStream<R>(url: string, body: unknown, onEvent: (event: 
   }
   if (result === undefined) throw new ApiError("ERR-NET-01", "Kết nối bị gián đoạn, cô thử lại nhé", 502);
   return result;
+}
+
+/** Tải một tệp (multipart/form-data, trường `file`) lên API; ném ApiError có mã lỗi nghiệp vụ. Không đặt content-type: trình duyệt tự thêm ranh giới. */
+export async function uploadFile<T = unknown>(url: string, file: Blob, filename: string, signal?: AbortSignal): Promise<T> {
+  const form = new FormData();
+  form.set("file", file, filename);
+  const res = await fetch(url, { method: "POST", body: form, signal });
+  if (!res.ok) throw await apiErrorFrom(res);
+  return (await res.json()) as T;
+}
+
+/**
+ * fetch cho DefaultChatTransport: lỗi HTTP thì ném ApiError kèm mã và thông điệp của server (bấm quá nhanh, input sai…);
+ * AI SDK chuyển nguyên lỗi này tới onError của useChat để giao diện hiện đúng lời server.
+ */
+export async function chatFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const res = await fetch(input, init);
+  if (!res.ok) throw await apiErrorFrom(res);
+  return res;
 }

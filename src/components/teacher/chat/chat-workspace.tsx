@@ -6,18 +6,16 @@ import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import Image from "next/image";
-import { ClipboardCheck, PlusCircle, RotateCcw, Square, Users, type LucideIcon } from "lucide-react";
+import { ClipboardCheck, PlusCircle, RotateCcw, Users, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { newConversationId } from "@/lib/ids";
 import { AiLoadingStepper } from "@/components/shared/ai-loading-stepper";
-import { useDeviceQuota, type DeviceQuota } from "@/hooks/use-device-quota";
-import { quotaAwareFetch } from "@/lib/device-quota";
 import { userMessage } from "@/lib/api-error";
-import { QUOTA_EXCEEDED_MESSAGE } from "@/core/constants/quota";
-import { cn } from "@/lib/utils";
 import type { StatusData, StuGuideMessage } from "@/types/chat";
 import { ChatActionsContext } from "./chat-context";
 import { Composer } from "./composer";
+import { chatFetch } from "@/lib/api-client";
+import { attachmentFromText, attachmentToText, isAttachmentText, type Attachment } from "@/lib/attachments";
 import { MessageView } from "./message-view";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -75,15 +73,21 @@ export function ChatWorkspace({
   const [activity, setActivity] = useState<StatusData | null>(null);
   const [busyNotice, setBusyNotice] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { quota, refresh: refreshQuota } = useDeviceQuota();
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport<StuGuideMessage>({
         api: "/api/chat",
-        fetch: quotaAwareFetch,
+        fetch: chatFetch,
         // Server giữ lịch sử, trí nhớ và giáo án đang làm việc: client chỉ gửi tin mới nhất của cô
-        prepareSendMessagesRequest: ({ id, messages }) => ({ body: { id, message: messages[messages.length - 1] } }),
+        prepareSendMessagesRequest: ({ id, messages }) => {
+          const last = messages[messages.length - 1];
+          // Tài liệu đính kèm đi riêng (server tự rào lại), phần lời của cô chỉ gồm text thường
+          const texts = last.parts.flatMap((p) => (p.type === "text" ? [p.text] : []));
+          const attachments = texts.flatMap((t) => attachmentFromText(t) ?? []);
+          const parts = texts.filter((t) => !isAttachmentText(t)).map((text) => ({ type: "text", text }));
+          return { body: { id, message: { id: last.id, role: last.role, parts }, attachments } };
+        },
       }),
     [],
   );
@@ -98,14 +102,12 @@ export function ChatWorkspace({
     },
     onFinish: () => {
       setActivity(null);
-      void refreshQuota();
       // giữ URL theo cuộc trò chuyện (không remount) và làm mới cột danh sách/trí nhớ
       if (!new URLSearchParams(window.location.search).get("c")) window.history.replaceState(null, "", `/teacher?c=${conversationId}`);
       router.refresh();
     },
     onError: (err) => {
-      void refreshQuota();
-      // hết lượt, bấm quá nhanh… hiện đúng lời server; lỗi hệ thống/mạng hiện câu chung
+      // bấm quá nhanh… hiện đúng lời server; lỗi hệ thống/mạng hiện câu chung
       setBusyNotice(userMessage(err, "Hệ thống AI phản hồi hơi lâu hoặc đang bận. Cô có thể chờ thêm hoặc gửi lại giúp mình nhé."));
     },
   });
@@ -117,13 +119,10 @@ export function ChatWorkspace({
     const timer = setTimeout(() => setBusyNotice("Hệ thống AI phản hồi hơi lâu hoặc đang bận. Cô có thể chờ thêm hoặc gửi lại giúp mình nhé."), SLOW_AFTER_MS);
     return () => clearTimeout(timer);
   }, [busy]);
-  const send = (text: string) => {
-    if (quota.isExceeded) {
-      setBusyNotice("Quá hạn sử dụng, bạn phải mua thêm lượt");
-      return;
-    }
+  const send = (text: string, attachments: Attachment[] = []) => {
     setBusyNotice(null);
-    void sendMessage({ text });
+    // Hiện chip tên tệp ngay trong khung chat; server dựng lại đúng các part này khi lưu
+    void sendMessage({ parts: [{ type: "text", text }, ...attachments.map((a) => ({ type: "text" as const, text: attachmentToText(a) }))] });
   };
 
   const retry = () => {
@@ -153,7 +152,7 @@ export function ChatWorkspace({
         <div className="scroll-thin flex-1 overflow-y-auto bg-white px-4 py-6 md:px-8">
           <div className="mx-auto max-w-3xl space-y-5">
             {messages.length === 0 ? (
-              <Welcome teacherName={teacherName} className={className} onPick={send} quota={quota} />
+              <Welcome teacherName={teacherName} className={className} onPick={send} />
             ) : (
               messages.map((m) => <MessageView key={m.id} message={m} restored={restoredIds.has(m.id)} />)
             )}
@@ -180,17 +179,12 @@ export function ChatWorkspace({
             {busyNotice && (
               <div
                 role="alert"
-                className={cn(
-                  "flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 text-sm",
-                  busyNotice.includes("Quá hạn") ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-800",
-                )}
+                className="flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800"
               >
                 <p className="min-w-0 flex-1">{busyNotice}</p>
-                {!quota.isExceeded && !busyNotice.includes("Quá hạn") && (
-                  <Button size="sm" variant="sun" onClick={retry}>
-                    <RotateCcw /> Gửi lại
-                  </Button>
-                )}
+                <Button size="sm" variant="outline" onClick={retry}>
+                  <RotateCcw /> Gửi lại
+                </Button>
               </div>
             )}
             {error && !busyNotice && <p className="sr-only">{error.message}</p>}
@@ -198,14 +192,9 @@ export function ChatWorkspace({
           </div>
         </div>
 
-        <div className="border-t bg-background/90 px-4 py-3 backdrop-blur md:px-8">
+        <div className="bg-background px-4 py-3 md:px-8">
           <div className="mx-auto max-w-3xl space-y-2">
-            {quota.isExceeded && (
-              <p role="alert" className="rounded-xl bg-rose-50 px-4 py-2.5 text-center text-sm text-rose-700">
-                {QUOTA_EXCEEDED_MESSAGE}
-              </p>
-            )}
-            {messages.length > 0 && !busy && !quota.isExceeded && (
+            {messages.length > 0 && !busy && (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {["Phê duyệt giáo án này", "Viết lại lời dẫn vui hơn", "Soạn thẻ nhiệm vụ 5 phút cho phụ huynh", "Bé nào cần quan sát sâu?"].map((s) => (
                   <button key={s} type="button" onClick={() => send(s)} className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-foreground">
@@ -216,17 +205,8 @@ export function ChatWorkspace({
             )}
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <Composer
-                  onSend={send}
-                  busy={busy || quota.isExceeded}
-                  placeholder={quota.isExceeded ? "Quá hạn sử dụng, bạn phải mua thêm lượt" : undefined}
-                />
+                <Composer onSend={send} busy={busy} />
               </div>
-              {busy && (
-                <Button variant="outline" size="icon" aria-label="Dừng" onClick={() => stop()}>
-                  <Square />
-                </Button>
-              )}
             </div>
             <p className="text-center text-[11px] text-slate-400">AI chỉ tạo bản nháp – cô luôn là người duyệt cuối.</p>
           </div>
@@ -240,16 +220,14 @@ function Welcome({
   teacherName,
   className,
   onPick,
-  quota,
 }: {
   teacherName: string;
   className: string;
   onPick: (text: string) => void;
-  quota: DeviceQuota;
 }) {
   const first = teacherName.split(" ").slice(-1)[0];
   const tile =
-    "flex flex-col items-start gap-1 rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50";
+    "flex flex-col items-start gap-1 rounded-xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50";
 
   return (
     <div className="space-y-8 py-10 animate-pop-in">
@@ -259,11 +237,6 @@ function Welcome({
           Chào cô {first}! Hôm nay {className.replace(/^Lớp/, "lớp")} chơi gì ạ?
         </h1>
         <p className="mt-2 text-sm text-slate-500">Cô cứ nhắn tự nhiên, mình soạn giúp cô.</p>
-        {quota.isExceeded && (
-          <p role="alert" className="mx-auto mt-4 max-w-md rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
-            {QUOTA_EXCEEDED_MESSAGE}
-          </p>
-        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -280,7 +253,7 @@ function Welcome({
               {content}
             </Link>
           ) : (
-            <button key={action.title} type="button" disabled={quota.isExceeded} onClick={() => onPick(action.prompt)} className={tile}>
+            <button key={action.title} type="button" onClick={() => onPick(action.prompt)} className={tile}>
               {content}
             </button>
           );
@@ -292,7 +265,6 @@ function Welcome({
           <button
             key={s}
             type="button"
-            disabled={quota.isExceeded}
             onClick={() => onPick(s)}
             className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-50"
           >

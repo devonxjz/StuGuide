@@ -11,7 +11,7 @@ const LEVEL = {
 /** Hộp cảnh báo an toàn vật lý theo Thông tư 45/2021 (nền vàng cam nổi bật). */
 export function SafetyAlertBox({ warnings }: { warnings: SafetyWarning[] }) {
   return (
-    <section aria-label="Cảnh báo an toàn" className="rounded-2xl border border-sun/50 bg-sun-soft/60 p-4">
+    <section aria-label="Cảnh báo an toàn" className="rounded-xl border border-sun/50 bg-sun-soft/60 p-4">
       <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-sun-strong">
         <TriangleAlert className="size-4" aria-hidden /> Cảnh báo an toàn · Thông tư 45/2021/TT-BGDĐT
       </h4>

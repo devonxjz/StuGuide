@@ -1,6 +1,7 @@
 import { createUIMessageStreamResponse } from "ai";
 import { z } from "zod";
 import { route, toActor } from "@/server/http";
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_CHARS, attachmentToText } from "@/lib/attachments";
 import type { StuGuideMessage } from "@/types/chat";
 
 export const maxDuration = 180;
@@ -16,11 +17,14 @@ const bodySchema = z.strictObject({
     role: z.literal("user"),
     parts: z.array(z.object({ type: z.literal("text"), text: z.string().trim().min(1, "Tin nhắn trống").max(4000, "Tin nhắn tối đa 4000 ký tự") })).min(1).max(5),
   }),
+  /** Văn bản trích từ tài liệu đính kèm (qua /api/chat/attachments); server rào lại như dữ liệu không tin cậy */
+  attachments: z.array(z.strictObject({ name: z.string().trim().min(1).max(120), text: z.string().trim().min(1).max(MAX_ATTACHMENT_CHARS) })).max(MAX_ATTACHMENTS).default([]),
 });
 
 /** Chatbot của giáo viên: stream văn bản + thẻ kết quả + tiến trình các bước. */
 export const POST = route({ auth: ["teacher"], body: bodySchema, rateLimit: "ai" }, async ({ req, body, c, session }) => {
-  const message = { id: body.message.id, role: "user", parts: body.message.parts.map((p) => ({ type: "text", text: p.text })) } as StuGuideMessage;
+  const parts = [...body.message.parts.map((p) => p.text), ...body.attachments.map(attachmentToText)].map((text) => ({ type: "text", text }));
+  const message = { id: body.message.id, role: "user", parts } as StuGuideMessage;
   const stream = await c.chat.createUiStream({ conversationId: body.id, message, actor: toActor(session), signal: req.signal });
   return createUIMessageStreamResponse({ stream });
 });

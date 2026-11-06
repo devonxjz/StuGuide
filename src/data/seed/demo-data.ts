@@ -227,17 +227,6 @@ export async function seedDemoData(db: Db) {
     data: { cardId, studentId: studentIds[6], parentId: parentIds[6], response: "needs_practice", message: "Bé hơi ngại kể lại, mai mẹ thử lại ạ." },
   });
 
-  await db.behavioralAlert.create({
-    data: {
-      studentId: huyId,
-      pattern: "Có biểu hiện ngập ngừng trong giao tiếp nhóm qua 3 tuần liên tiếp",
-      weekCount: 3,
-      skillArea: "Kỹ năng giao tiếp nhóm",
-      suggestedActivity:
-        "Trò chơi \"Cặp đôi tí hon\": cô ghép Gia Huy với một bạn thân thiện để cùng xếp và chuyển hộp sữa, mỗi lượt chỉ cần trao đổi một câu ngắn.",
-    },
-  });
-
   // Bản nháp AI hôm nay (lớp B1) và bản chờ BGH duyệt (lớp A2)
   const draft = await db.lessonPlan.create({
     data: planData(GARDEN_PLAN, {

@@ -7,7 +7,7 @@ export interface RateRule {
   windowMs: number;
 }
 
-export type RateBucket = "login-ip" | "login-account" | "ai" | "write" | "read" | "public-token";
+export type RateBucket = "login-ip" | "login-account" | "ai" | "write" | "read" | "public-token" | "email";
 
 /** Ngưỡng theo nhóm thao tác. AI tốn chi phí nên chặt nhất; đăng nhập chống dò mật khẩu. */
 export const RATE_RULES: Record<RateBucket, RateRule> = {
@@ -17,6 +17,8 @@ export const RATE_RULES: Record<RateBucket, RateRule> = {
   write: { limit: 120, windowMs: 60_000 },
   read: { limit: 600, windowMs: 60_000 },
   "public-token": { limit: 60, windowMs: 60_000 },
+  /** Gửi thư ra ngoài: chặt vì không thu hồi được và tốn hạn mức nhà cung cấp mail */
+  email: { limit: 6, windowMs: 10 * 60_000 },
 };
 
 export interface RateResult {
