@@ -6,6 +6,11 @@ export function createUserRepo(db: Db) {
     findById: (id: string) => db.user.findUnique({ where: { id } }),
     findByEmail: (email: string) => db.user.findUnique({ where: { email } }),
     findByPhone: (phone: string) => db.user.findUnique({ where: { phone } }),
+    /** Tài khoản đã dùng một trong các số điện thoại / email này (để nhập danh sách lớp không tạo trùng). */
+    findByContacts: (phones: string[], emails: string[]) =>
+      phones.length || emails.length
+        ? db.user.findMany({ where: { OR: [{ phone: { in: phones } }, { email: { in: emails } }] }, select: { id: true, role: true, schoolId: true, phone: true, email: true } })
+        : Promise.resolve([]),
     findFirstByRole: (role: Role) => db.user.findFirst({ where: { role }, orderBy: { createdAt: "asc" } }),
     classOfTeacher: (teacherId: string) =>
       db.class.findFirst({ where: { teachers: { some: { teacherId } } }, orderBy: { name: "asc" } }),

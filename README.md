@@ -40,7 +40,7 @@ npm run dev                     # Chạy local tại http://localhost:3000
 ```bash
 npm test          # Vitest (nhanh, không tốn token API): guardrails, schema, RAG, services
 npm run test:live # Vitest với OpenAI THẬT: kiểm tra tính sáng tạo, trí nhớ, rubric chấm điểm
-npm run e2e       # Playwright E2E: 11 kịch bản đầy đủ 3 vai trò (chạy trên e2e.db riêng)
+npm run e2e       # Playwright E2E: 11 kịch bản đầy đủ 3 vai trò (cần E2E_DATABASE_URL trỏ tới một DB Postgres riêng — lệnh chạy sẽ force-reset DB đó)
 npm run typecheck && npm run lint
 ```
 

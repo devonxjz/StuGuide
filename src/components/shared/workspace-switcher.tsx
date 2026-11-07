@@ -2,20 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { AddClassDialog } from "@/components/teacher/add-class-dialog";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-/** Chọn khu vực làm việc (lớp). Chỉ hiện khi giáo viên phụ trách từ hai lớp trở lên. */
+/** Chọn khu vực làm việc (lớp) và thêm lớp mới (kèm nhập danh sách bé + phụ huynh từ CSV/Excel). */
 export function WorkspaceSwitcher({ classes, currentId }: { classes: { id: string; name: string }[]; currentId?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  if (classes.length < 2) return null;
+  const [adding, setAdding] = useState(false);
   const current = classes.find((c) => c.id === currentId) ?? classes[0];
 
   const choose = async (classId: string) => {
     setOpen(false);
-    if (classId === current.id) return;
+    if (classId === current?.id) return;
     await api("/api/workspace", { method: "POST", body: { classId } });
     router.push("/teacher");
     router.refresh();
@@ -33,7 +34,7 @@ export function WorkspaceSwitcher({ classes, currentId }: { classes: { id: strin
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] text-slate-500">Khu vực làm việc</span>
-          <span className="block truncate font-medium text-slate-900">{current.name}</span>
+          <span className="block truncate font-medium text-slate-900">{current?.name ?? "Chưa có lớp"}</span>
         </span>
         <ChevronsUpDown className="size-4 shrink-0 text-slate-400" aria-hidden />
       </button>
@@ -44,17 +45,30 @@ export function WorkspaceSwitcher({ classes, currentId }: { classes: { id: strin
               <button
                 type="button"
                 role="option"
-                aria-selected={c.id === current.id}
+                aria-selected={c.id === current?.id}
                 onClick={() => choose(c.id)}
-                className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100", c.id === current.id && "font-medium")}
+                className={cn("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100", c.id === current?.id && "font-medium")}
               >
                 <span className="flex-1 truncate">{c.name}</span>
-                {c.id === current.id && <Check className="size-4 text-slate-500" aria-hidden />}
+                {c.id === current?.id && <Check className="size-4 text-slate-500" aria-hidden />}
               </button>
             </li>
           ))}
+          <li className={classes.length ? "mt-1 border-t border-slate-100 pt-1" : ""}>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setAdding(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-primary-strong hover:bg-slate-100"
+            >
+              <Plus className="size-4" aria-hidden /> Thêm lớp
+            </button>
+          </li>
         </ul>
       )}
+      <AddClassDialog open={adding} onClose={() => setAdding(false)} />
     </div>
   );
 }

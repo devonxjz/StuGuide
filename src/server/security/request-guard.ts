@@ -33,6 +33,7 @@ const PROTECTED_PAGES = /^\/(teacher|principal|family)(\/|$)/;
 /** Giới hạn body theo route (byte). Phiên học ở nhà chứa tới 500 sự kiện + 60 lượt hội thoại. */
 const BODY_LIMITS: [RegExp, number][] = [
   [/^\/api\/family\/sessions$/, 1024 * 1024],
+  [/^\/api\/classes$/, 256 * 1024],
   [/^\/api\/(chat|family\/chat)$/, 512 * 1024],
   [/^\/api\/chat\/transcribe$/, 5 * 1024 * 1024],
   [/^\/api\/chat\/attachments$/, 9 * 1024 * 1024],

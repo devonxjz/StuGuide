@@ -54,8 +54,6 @@ playwright-report/
 tests/.tmp/
 .next-e2e/
 
-dev.db
-e2e.db
 taikhoan.txt
 
 # cache

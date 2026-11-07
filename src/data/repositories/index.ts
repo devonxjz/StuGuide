@@ -7,6 +7,7 @@ import { createParentCardRepo } from "./parent-card.repo";
 import { createAuditLogRepo } from "./audit-log.repo";
 import { createConversationRepo, createMemoryRepo } from "./conversation.repo";
 import { createChildRepo } from "./child.repo";
+import { createClassRepo } from "./class.repo";
 
 export function createRepositories(db: Db) {
   return {
@@ -19,6 +20,7 @@ export function createRepositories(db: Db) {
     conversations: createConversationRepo(db),
     memories: createMemoryRepo(db),
     children: createChildRepo(db),
+    classes: createClassRepo(db),
   };
 }
 

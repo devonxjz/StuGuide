@@ -117,6 +117,28 @@ export function createActionTools(ctx: ToolContext) {
     },
   );
 
+  const lookupClassRoster = tool(
+    guarded(async (args: { query?: string }) => {
+      const entries = await services.classes.roster(actor, args.query);
+      const shown = entries.slice(0, 40);
+      const lines = shown.map(
+        (e) =>
+          `${e.studentName} · ${e.gender ?? "?"} · sinh ${e.dateOfBirth} (${e.age}) · phụ huynh: ${e.parents.map((p) => [p.name, p.phone, p.email].filter(Boolean).join(", ")).join(" | ") || "chưa có"}`,
+      );
+      const head = `${entries.length} bé${args.query ? ` khớp "${args.query}"` : " trong lớp"}${entries.length > shown.length ? ` (hiển thị ${shown.length} bé đầu)` : ""}.`;
+      return [
+        `${head}\n${fenceUntrusted("danh sách lớp do cô nhập", lines)}`,
+        { kind: "notice", tone: "info", message: head },
+      ];
+    }),
+    {
+      name: "lookup_class_roster",
+      description: "Tra cứu danh sách lớp đã nhập: thông tin bé (ngày sinh, tuổi, giới tính) và phụ huynh (họ tên, số điện thoại, email). Truyền query là tên bé / tên phụ huynh / số điện thoại / email; bỏ trống để xem cả lớp.",
+      schema: z.object({ query: z.string().max(80).optional().describe("Tên bé, tên phụ huynh, số điện thoại hoặc email cần tìm") }),
+      responseFormat: "content_and_artifact",
+    },
+  );
+
   const rewritePlanSection = tool(
     guarded(async (args: { section: (typeof EDITABLE_SECTIONS)[number]; instruction?: string; planId?: string }) => {
       const target = await resolvePlan(args.planId);
@@ -346,5 +368,5 @@ export function createActionTools(ctx: ToolContext) {
     },
   );
 
-  return [childProfile, saveMemory, createLessonPlan, rewritePlanSection, approvePlan, generateChecklist, generateParentCard, sendParentCard, draftParentEmails, getFeedbackStats, analyzeClassBehavior, listRecentPlans];
+  return [childProfile, lookupClassRoster, saveMemory, createLessonPlan, rewritePlanSection, approvePlan, generateChecklist, generateParentCard, sendParentCard, draftParentEmails, getFeedbackStats, analyzeClassBehavior, listRecentPlans];
 }

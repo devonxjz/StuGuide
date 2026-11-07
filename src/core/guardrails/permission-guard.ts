@@ -11,13 +11,14 @@ export type Action =
   | "card:read"
   | "card:write"
   | "email:write"
+  | "class:write"
   | "feedback:write"
   | "school:read-all"
   | "report:export"
   | "audit:read";
 
 const MATRIX: Record<Role, readonly Action[]> = {
-  teacher: ["plan:read", "plan:write", "plan:approve", "assessment:read", "assessment:write", "card:read", "card:write", "email:write"],
+  teacher: ["plan:read", "plan:write", "plan:approve", "assessment:read", "assessment:write", "card:read", "card:write", "email:write", "class:write"],
   principal: ["plan:read", "plan:approve", "assessment:read", "card:read", "school:read-all", "report:export", "audit:read"],
   parent: ["feedback:write"],
 };
